@@ -133,7 +133,7 @@ void setup() {
 
 void loop() {
 
-  timer = millis();
+  timer = millis(); //iniciando cronometro
   
   bordaEsq.readCalibrated(BordaEsqValor);
   bordaDir.readCalibrated(BordaDirValor);
@@ -143,10 +143,10 @@ void loop() {
   erro = err();
   
   //--------------->AREA DOS SENSORES<---------------
-
+//Utilizando os sensores laterais
   switch (ejetor)
   {
-    case 0:
+    case 0: 
       if ((BordaEsqValor[0] < 550) || (BordaDirValor[0] < 550))
         {
           timer2 = timer;
@@ -203,6 +203,7 @@ void loop() {
   Turn = p + i + d;
   
   //-------------> Area PD Traseiro <----------------------
+  //Aqui tentamos conciliar os valores do pid traseiro, lembrando, esse código é pro celta caindo
   pt = erroTras * kpTras;
 
   dt = Kdtras * (erroTras - erroAnteriorTras);
@@ -216,6 +217,7 @@ void loop() {
   MotorB = PWM + Turn - incrementoTras;
 
   //--------------->AREA DO SENTIDO DAS RODAS<--------------
+
 
   frente();
 
@@ -235,7 +237,7 @@ void loop() {
   
 }
 
-
+//Atribuindo valores ao erro
 float err()
 {
   int somaEsq = 0, somaDir = 0;
@@ -256,6 +258,13 @@ float err()
   return (erroEsq - erroDir);
 }
 
+//O ERRO DO SENSOR DE TRAS AINDA N FOI CRIADO -> DIY
+float ErrTras(){
+  //Manipule o calculo do erro frontal, igual o dali de cima para fazer o erro de tras
+  //Lembre-se que tem q realizar a leitura dos 2 sensores traseiros e por aqui
+}
+
+//Função para o sensor de parada ativar 
 void parada()
 {
   if ((BordaDirValor[0] < 550) && (BordaEsqValor[0] > 550))
@@ -273,6 +282,7 @@ void parada()
     }
 }
 
+//Função para o robô não andar mais depois q chegar no fim do trajeto
 void freio()
   {
     frente();
@@ -300,6 +310,7 @@ void freio()
     delay(60000);
   }
 
+//Fazendo o robô andar para frente 
 void frente()
   {
     digitalWrite(AIN1, HIGH);
@@ -308,6 +319,7 @@ void frente()
     digitalWrite(BIN2, LOW);
   }
 
+//Verificando a entrada na curva
 void entrouCurva()
 {
   if ((BordaEsqValor[0] < 550) && (BordaDirValor[0] > 550))
@@ -328,6 +340,7 @@ void entrouCurva()
     }     
 }
 
+
 void pid(float x, float y, float z, int k)
 {
   Kp  = x;
@@ -336,6 +349,7 @@ void pid(float x, float y, float z, int k)
   PWM = k;
 }
 
+//Atribuindo pid para cada curva individualmente, provavelmente sua pista terá mais de 1 curva, cada curva é um case, adicione mais case's se necessário 
 void tipoCurva(int x)
 {   
     //     Kp                 Kd               Ki           
