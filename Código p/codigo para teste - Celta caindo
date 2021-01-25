@@ -57,6 +57,7 @@ QTRSensorsRC bordaDir ((unsigned char[]) {A3}, 1);
 QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4}, 6); //Sensores frontais
 
 unsigned int sensor_values[6];
+unsigned int sensor_values_2[2]; //Valores dos sensores traseiros
 unsigned int BordaEsqValor[1], BordaDirValor[1];
 float peso[] = {1000, 500, 200};
 
