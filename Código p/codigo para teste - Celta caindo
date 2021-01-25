@@ -53,8 +53,8 @@ unsigned long timer, timer2, TempoEspera = 100;
 int ejetor = 0;
 
 QTRSensorsRC bordaEsq ((unsigned char[]) {12}, 1);                      //Sensores de borda
-QTRSensorsRC bordaDir ((unsigned char[]) {A3}, 1);  
-QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4, A3, A5}, 8); //Sensores frontais
+QTRSensorsRC bordaDir ((unsigned char[]) {8}, 1);  
+QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4, A3, A5}, 8); //Sensores frontais e dois traseiros
 
 unsigned int sensor_values[6];
 unsigned int sensor_values_2[2]; //Valores dos sensores traseiros
@@ -86,14 +86,17 @@ void setup() {
 //      pwmCurva[i] = PWM;
 //    }
   
-  pinMode(A0,      INPUT);
-  pinMode(A1,      INPUT);
-  pinMode(A2,      INPUT);
-  pinMode(A3,      INPUT);
-  pinMode(A4,      INPUT);
-  pinMode(A5,      INPUT);
-  pinMode(A6,      INPUT);
-  pinMode(A7,      INPUT);
+  pinMode(A0,      INPUT);  //S  F
+  pinMode(A1,      INPUT);  //e  r
+  pinMode(A2,      INPUT);  //n  o
+  pinMode(A3,      INPUT);  //s  n
+  pinMode(A4,      INPUT);  //o  t
+  pinMode(A5,      INPUT);  //r  a
+  pinMode(A6,      INPUT);  //e  i
+  pinMode(A7,      INPUT);  //s  s
+
+  pinMode(8,       INPUT);  //Sensores
+  pinMode(12,      INPUT);  //traseiros
   pinMode(AIN1,   OUTPUT);
   pinMode(AIN2,   OUTPUT);
   pinMode(BIN1,   OUTPUT);
@@ -313,7 +316,7 @@ void parada()
       entrouCurva(); // Verifica se é uma curva
     }
 
- while(contador == numParada)
+ while(contador == numCurvas) //Era numParada
     {
       freio();
     }
