@@ -31,7 +31,7 @@
 double Kp = 0.2, Kd = 0.465, Ki =0.000015; // Variáveis que são modificadas no PID
 double kpTras, Kdtras, erroTras, erroAnteriorTras, pt, dt, incrementoTras;
   
-int PWM = 255; // valor da força do motor em linha reta
+int PWM = 255; // valor da força do motor em linha retaa
 
 int PWMCurva = 100, PWMAux; // Variáveis para o PWM na curva
 double KpCurva = 0.08, KdCurva = 0.3, KiCurva = 0.00001; 
