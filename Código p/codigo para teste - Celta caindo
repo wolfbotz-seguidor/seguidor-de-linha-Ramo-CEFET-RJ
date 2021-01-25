@@ -216,6 +216,36 @@ void loop() {
   MotorA = PWM - Turn + incrementoTras;
   MotorB = PWM + Turn - incrementoTras;
 
+//--------------->AREA DO LIMITE DO PWM<--------------- 
+
+//  if (MotorA > 260)
+//  {
+//    ExcessoB = (abs(MotorA) - 250);
+//    MotorA = 250;
+//    MotorB -= ExcessoB;
+//  }
+//
+//  else if (MotorB > 260)
+//  {
+//    ExcessoA = (abs(MotorB) - 250);
+//    MotorB = 250;
+//    MotorA -= ExcessoA;
+//  }
+//
+//  if (MotorA < -260)
+//  {
+//    ExcessoB = (abs(MotorA) - 250);
+//    MotorA = 250;
+//    MotorB += ExcessoB;
+//  }
+//
+//  else if (MotorB < -260)
+//  {
+//    ExcessoA = (abs(MotorB) - 250);
+//    MotorB = 250;
+//    MotorA += ExcessoA;
+//  }
+
   //--------------->AREA DO SENTIDO DAS RODAS<--------------
 
 
