@@ -54,7 +54,7 @@ int ejetor = 0;
 
 QTRSensorsRC bordaEsq ((unsigned char[]) {12}, 1);                      //Sensores de borda
 QTRSensorsRC bordaDir ((unsigned char[]) {A3}, 1);  
-QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4}, 6); //Sensores frontais
+QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4, A3, A5}, 8); //Sensores frontais
 
 unsigned int sensor_values[6];
 unsigned int sensor_values_2[2]; //Valores dos sensores traseiros
@@ -91,6 +91,7 @@ void setup() {
   pinMode(A2,      INPUT);
   pinMode(A3,      INPUT);
   pinMode(A4,      INPUT);
+  pinMode(A5,      INPUT);
   pinMode(A6,      INPUT);
   pinMode(A7,      INPUT);
   pinMode(AIN1,   OUTPUT);
@@ -143,6 +144,11 @@ void loop() {
 
   erro = err();
   
+  //--------------->ERRO TRASEIRO<------------------
+  erroTras = ErrTras();  
+
+
+
   //--------------->AREA DOS SENSORES<---------------
 //Utilizando os sensores laterais
   switch (ejetor)
@@ -289,10 +295,10 @@ float err()
   return (erroEsq - erroDir);
 }
 
-//O ERRO DO SENSOR DE TRAS AINDA N FOI CRIADO -> DIY
 float ErrTras(){
-  //Manipule o calculo do erro frontal, igual o dali de cima para fazer o erro de tras
-  //Lembre-se que tem q realizar a leitura dos 2 sensores traseiros e por aqui
+    int errotraseiro;
+    errotraseiro = sensor_values2[1] - sensor_values2[2];
+    return (errotraseiro);
 }
 
 //Função para o sensor de parada ativar 
