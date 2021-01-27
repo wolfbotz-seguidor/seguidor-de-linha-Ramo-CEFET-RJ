@@ -54,9 +54,21 @@ void setup() {
 
 void loop() {
 
+QTRRead(); //Com a biblioteca
+
+Sem_biblioteca();
+
+Codigo_cru();
+
+
+}
+
+
+
 //---------Método com a biblioteca----//
 
 // read raw sensor values
+void QTRRead(){
   qtr.read(sensorValues);
 
   // print the sensor values as numbers from 0 to 1023, where 0 means maximum
@@ -69,14 +81,13 @@ void loop() {
   Serial.println();
 
   delay(250);
-
+}
 //---------------------------------//
 
 
 
-
-
 //-------Método sem a biblioteca--------//
+void Sem_biblioteca(){
   for(int i = 0; i < 8; i++){
     Leitura_dos_sensores[i] = analogRead(sensores_frontais[i]);
     Serial.print("Leitura do sensor");
@@ -87,14 +98,14 @@ void loop() {
   }
   delay(2); //delay em teste
   Serial.println("");
+}
 //--------------------------------------// 
-
-
-
 
 
 //------Código abaixo tem a intenção de mostrar no serial-----//
 //os valores na mesma linha para melhor visualização---------//
+
+void Codigo_cru(){
   sensor_1 = analogRead(A0);
   sensor_2 = analogRead(A1);
   sensor_3 = analogRead(A2);
@@ -134,8 +145,5 @@ void loop() {
   
   Serial.print("Sensor 8:");
   Serial.println(sensor_1);
-
-//----------------------------//
-
-
 }
+//----------------------------//
