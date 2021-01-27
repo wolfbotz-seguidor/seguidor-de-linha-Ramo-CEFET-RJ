@@ -17,16 +17,16 @@
 
 #include <QTRSensors.h>
 
-#define SaidaA //terminal PWM do motor direito
-#define SaidaB //terminal PWM do motor esquerdo
+#define SaidaA 10 //terminal PWM do motor direito
+#define SaidaB 12 //terminal PWM do motor esquerdo
   
 //Lado direito
-#define AIN1 
-#define AIN2 
+#define AIN1 6  //terminais como exemplo
+#define AIN2 4
 
 //Lado Esquerdo
-#define BIN1 
-#define BIN2 
+#define BIN1 3
+#define BIN2 9
 
 int sensores_frontais[] = {A0, A1, A2, A3, A4, A5, A6, A7}; //Portas dos sensores frontais
 int Leitura_dos_sensores[8]; // leitura dos sensores frontais
