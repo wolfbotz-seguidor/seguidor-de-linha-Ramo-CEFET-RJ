@@ -28,7 +28,9 @@
 #define BIN1 4 // Quando em HIGH, roda esquerda anda para frente
 #define BIN2 2
 
-double Kp = 0.2, Kd = 0.465, Ki =0.000015; // Variáveis que são modificadas no PID  
+double Kp = 0.2, Kd = 0.465, Ki =0.000015; // Variáveis que são modificadas no PID
+double kpTras, Kdtras, erroTras, erroAnteriorTras, pt, dt, incrementoTras;
+  
 int PWM = 255; // valor da força do motor em linha reta
 
 int PWMCurva = 100, PWMAux; // Variáveis para o PWM na curva
@@ -199,11 +201,19 @@ void loop() {
   erroAnterior = erro;
   
   Turn = p + i + d;
+  
+  //-------------> Area PD Traseiro <----------------------
+  pt = erroTras * kpTras;
+
+  dt = Kdtras * (erroTras - erroAnteriorTras);
+  erroAnteriorTras = erroTras; 
+
+  incrementoTras = pt + dt;
     
   //-------------> Junção dos 2 PIDS <---------------------- 
   
-  MotorA = PWM - Turn
-  MotorB = PWM + Turn
+  MotorA = PWM - Turn + incrementoTras;
+  MotorB = PWM + Turn - incrementoTras;
 
   //--------------->AREA DO SENTIDO DAS RODAS<--------------
 
