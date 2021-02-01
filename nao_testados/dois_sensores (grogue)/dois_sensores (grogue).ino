@@ -1,0 +1,361 @@
+// Este código tem como objetivo ser a continuação do ReadLine manual
+// utilizando a ideia da linha ser branca e o fundo ser preto.                    
+// 
+
+// PWM         50     -----       60     -----       70     -----       80    -----    90       -----     110  
+// Kp:      0.043     -----     0.04     -----     0.043    -----     0.19    -----    0.065    -----     0.08  
+// Ki:          0     -----        0     -----     0.00001  -----             -----    0.3      -----     0.3   
+// Kd:       0.20     -----      0.3     -----      0.24    -----      0.9    -----    0.0001   -----    0.0001 
+// Tensão:      -     -----     7.97     -----     7.67     -----     7.32    -----    7.6      -----     7.7   
+
+// PWM            130      ----   150      ----   170      ----   190       ----   210       ----  230        ----   255         ----   255       ----   255
+// Kp:            0.13     ----   0.14     ----   0.21     ----   0.18      ----   0.18      ----  0.2        ----   0.16        ----   0.18      ----   0.2
+// Ki:            0.43     ----   0.35     ----   0.42     ----   0.51      ----   0.51      ----  0.52       ----   0.49        ----   0.49      ----   0.65
+// Kd:            0.000015 ----   0.00002  ----   0.00003  ----   0.000024  ----   0.000026  ----  0.000027   ----   0.000025    ----   0.000025  ----   0.000015
+// Tensão:        7.67     ----   7.79     ----   7.83     ----   7.61      ----   7.61      ----  7.59       ----   7.55        ----   8.1       ----   7.91
+
+
+#include <QTRSensors.h>
+
+#define SaidaA 9
+#define SaidaB 3
+
+//Lado direito
+#define AIN2 5 // Quando em HIGH, roda direita anda para frente
+#define AIN1 6 
+
+//Lado Esquerdo
+#define BIN1 4 // Quando em HIGH, roda esquerda anda para frente
+#define BIN2 2
+
+double Kp = 0.2, Kd = 0.465, Ki =0.000015; // Variáveis que são modificadas no PID
+double kpTras, Kdtras, erroTras, erroAnteriorTras, pt, dt, incrementoTras;
+  
+int PWM = 255; // valor da força do motor em linha reta
+
+int PWMCurva = 100, PWMAux; // Variáveis para o PWM na curva
+double KpCurva = 0.08, KdCurva = 0.3, KiCurva = 0.00001; 
+double KpAux, KdAux, KiAux;
+
+//int numCurvas = 4;
+//double constante[4][3]; //Número de curvas nas linhas e Constantes nas colunas
+//int pwmCurva[4];
+
+double erro, p, d, erroAnterior = 0, i, integral = 0, Turn = 0; //Área PID
+double MotorA, MotorB; // Tensao enviada pelo PID
+
+int position_line = 0; // Método com o Read Line;
+
+int contador = 0, numParada = 4; // Borda
+int curvaValor = 0, entrou = 0;
+
+unsigned long timer, timer2, TempoEspera = 100;
+int ejetor = 0;
+
+QTRSensorsRC bordaEsq ((unsigned char[]) {12}, 1);                      //Sensores de borda
+QTRSensorsRC bordaDir ((unsigned char[]) {A3}, 1);  
+QTRSensorsAnalog qtra  ((unsigned char[]) {A2, A1, A0, A7, A6, A4}, 6); //Sensores frontais
+
+unsigned int sensor_values[6];
+unsigned int BordaEsqValor[1], BordaDirValor[1];
+float peso[] = {1000, 500, 200};
+
+float err();
+void  parada();
+void  freio();
+void  freio();
+void  tipoCurva(int);
+void  entrouCurva();
+void  pid(float, float, float, int);
+
+void setup() {
+  Serial.begin(9600); // Comunicacao com o Serial
+
+  KpAux = Kp;   //Valores Dos K's sendo estabelecidos
+  KdAux = Kd;
+  KiAux = Ki;
+  PWMAux = PWM;
+
+  // Faz com que todas as curvas recebam as cte's principais
+//  for(int i = 0; i < numCurvas; i++)
+//    {
+//      constante[i][0] = Kp;
+//      constante[i][1] = Kd;
+//      constante[i][2] = Ki;
+//      pwmCurva[i] = PWM;
+//    }
+  
+  pinMode(A0,      INPUT);
+  pinMode(A1,      INPUT);
+  pinMode(A2,      INPUT);
+  pinMode(A3,      INPUT);
+  pinMode(A4,      INPUT);
+  pinMode(A6,      INPUT);
+  pinMode(A7,      INPUT);
+  pinMode(AIN1,   OUTPUT);
+  pinMode(AIN2,   OUTPUT);
+  pinMode(BIN1,   OUTPUT);
+  pinMode(BIN2,   OUTPUT);
+  pinMode(MotorA, OUTPUT);
+  pinMode(MotorB, OUTPUT);
+
+  //----> Calibração do sensor de borda <----
+
+  for (int i = 0; i < 70; i++)
+    {
+      bordaEsq.calibrate();
+      bordaDir.calibrate();
+      delay(5);
+    }
+
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  
+  //----> Calibração dos Sensores frontais <----
+
+  for (int i = 0; i < 120; i++)
+    {
+      qtra.calibrate();
+      delay(5);
+    }
+
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  delay(500);
+  digitalWrite(13, HIGH);
+  delay(500);
+  digitalWrite(13, LOW);
+ 
+}
+
+
+void loop() {
+
+  timer = millis();
+  
+  bordaEsq.readCalibrated(BordaEsqValor);
+  bordaDir.readCalibrated(BordaDirValor);
+
+  //---------------> ERRO <--------------------------
+
+  erro = err();
+  
+  //--------------->AREA DOS SENSORES<---------------
+
+  switch (ejetor)
+  {
+    case 0:
+      if ((BordaEsqValor[0] < 550) || (BordaDirValor[0] < 550))
+        {
+          timer2 = timer;
+          ejetor = 1;
+        }
+      break;
+      
+    case 1:
+      if ((timer - timer2) > TempoEspera)
+        {
+          parada();  // Verifica se é um marcador de parada
+          ejetor = 2;
+        }
+      break;
+      
+    case 2:
+      if ((BordaEsqValor[0] > 550) && (BordaDirValor[0] > 550))
+        {
+          timer2 = 0;
+          ejetor = 0;
+        }
+      break;
+  }
+  
+//  if (((BordaEsqValor[0] < 550) || (BordaDirValor[0] < 550)) && (ejetor == 0))
+//    {
+//      timer2 = timer;
+//      ejetor = 1;
+//    }
+//  
+//  if (((timer - timer2) > TempoEspera) && (ejetor == 1))
+//    { 
+//      parada();      // Verifica se é um marcador de parada
+//      entrouCurva(); // Verifica se é uma curva
+//      ejetor = 2;
+//    }
+//  
+//  if (((BordaEsqValor[0] > 550) && (BordaDirValor[0] > 550)) && (ejetor == 2))
+//    {
+//      timer2 = 0;
+//      ejetor = 0;
+//    } 
+
+  //---------------> AREA DO PID <-------------------------
+
+  p = erro * Kp; // Proporcao
+  
+  integral += erro; // Integral
+  i = Ki * integral;
+ 
+  d = Kd * (erro - erroAnterior); // Derivada
+  erroAnterior = erro;
+  
+  Turn = p + i + d;
+  
+  //-------------> Area PD Traseiro <----------------------
+  pt = erroTras * kpTras;
+
+  dt = Kdtras * (erroTras - erroAnteriorTras);
+  erroAnteriorTras = erroTras; 
+
+  incrementoTras = pt + dt;
+    
+  //-------------> Junção dos 2 PIDS <---------------------- 
+  
+  MotorA = PWM - Turn + incrementoTras;
+  MotorB = PWM + Turn - incrementoTras;
+
+  //--------------->AREA DO SENTIDO DAS RODAS<--------------
+
+  frente();
+
+  if (MotorA < 0) // Giro para a direita
+    {
+      digitalWrite(AIN1, LOW);
+      digitalWrite(AIN2, HIGH);
+    }
+  if (MotorB < 0) // Giro para a esquerda
+    {
+      digitalWrite(BIN1, LOW);
+      digitalWrite(BIN2, HIGH);
+    }
+    
+  analogWrite(SaidaA, MotorA);
+  analogWrite(SaidaB, MotorB); 
+  
+}
+
+
+float err()
+{
+  int somaEsq = 0, somaDir = 0;
+  int erroEsq = 0, erroDir = 0;
+  
+  for(int i = 0; i < 3; i++)
+    {
+      erroEsq += sensor_values[i]*peso[i];
+      somaEsq += sensor_values[i];
+      
+      erroDir += sensor_values[(5 - i)]*peso[i];
+      somaDir += sensor_values[(5 - i)];
+    }
+    
+  erroEsq /= somaEsq;
+  erroDir /= somaDir;
+  
+  return (erroEsq - erroDir);
+}
+
+void parada()
+{
+  if ((BordaDirValor[0] < 550) && (BordaEsqValor[0] > 550))
+    {
+      contador++;
+    }
+  else
+    {
+      entrouCurva(); // Verifica se é uma curva
+    }
+
+ while(contador == numParada)
+    {
+      freio();
+    }
+}
+
+void freio()
+  {
+    frente();
+
+    analogWrite(SaidaA, 50);
+    analogWrite(SaidaB, 50);
+      
+    delay(500);
+      
+    digitalWrite(AIN1, HIGH);
+    digitalWrite(AIN2, HIGH);
+    digitalWrite(BIN2, HIGH);
+    digitalWrite(BIN1, HIGH);
+
+    analogWrite(SaidaA, LOW);
+    analogWrite(SaidaB, LOW);
+      
+    delay (2000);
+
+    digitalWrite(AIN1, LOW);
+    digitalWrite(AIN2, LOW);
+    digitalWrite(BIN2, LOW);
+    digitalWrite(BIN1, LOW);
+
+    delay(60000);
+  }
+
+void frente()
+  {
+    digitalWrite(AIN1, HIGH);
+    digitalWrite(AIN2, LOW);
+    digitalWrite(BIN1, HIGH);
+    digitalWrite(BIN2, LOW);
+  }
+
+void entrouCurva()
+{
+  if ((BordaEsqValor[0] < 550) && (BordaDirValor[0] > 550))
+    {
+      switch (entrou)
+      {
+         case 0:
+          curvaValor++;
+          tipoCurva(curvaValor);
+          entrou = 1;
+          break;
+          
+         case 1:
+          entrou = 0;
+          tipoCurva(0);
+          break;
+      }
+    }     
+}
+
+void pid(float x, float y, float z, int k)
+{
+  Kp  = x;
+  Kd  = y;
+  Ki  = z;
+  PWM = k;
+}
+
+void tipoCurva(int x)
+{   
+    //     Kp                 Kd               Ki           
+    //pid(constante[x][0], constante[x][1], constante[x][2], pwmCurva[x]);
+   
+  switch (x)
+  {
+    case 0:
+      pid(KpAux, KdAux, KiAux, PWMAux);
+      break;
+      
+    case 1:
+      pid(KpCurva, KdCurva, KiCurva, PWM = PWMCurva);
+      break;
+      
+    case 2:
+      pid(KpCurva, KdCurva, KiCurva, PWM = PWMCurva);
+      break;
+      
+    default:
+      pid(KpAux, KdAux, KiAux, PWMAux);
+  }
+}
