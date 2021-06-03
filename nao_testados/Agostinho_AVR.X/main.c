@@ -160,7 +160,7 @@ int main(void) {
 
 
         for (int i = 0; i < 7; i++) {
-            sprintf(buffer, "%4d\n", sensores_frontais[i]); //Converte para string
+            sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
             UART_enviaCaractere(0x20); //espaço
         }
