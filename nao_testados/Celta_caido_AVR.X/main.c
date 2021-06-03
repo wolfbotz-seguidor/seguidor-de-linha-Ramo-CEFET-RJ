@@ -123,7 +123,7 @@ int main(void) {
 
     DDRD = 0b00100000; //PD5 como saída e PD2, PD4, PD6 e PD7 como entrada 
     PORTD = 0b00000000; //inicializados em nível baixo
-    DDRB = 0b00100111; //Habilita PB1 e PB2 e PB0 como saída
+    DDRB = 0b00100111; //Habilita PB1 e PB2 e PB0 e PB5 como saída
     PORTB = 0b00000000; //PORTB inicializa desligado e saídas sem pull up
 
 
@@ -319,25 +319,25 @@ int PID(int error, int tempo) {
 
 void frente() {
 
-    clr_bit(PORTD, AIN1);
-    set_bit(PORTD, AIN2); //frente direita
+    clr_bit(PORTB, AIN1);
+    set_bit(PORTB, AIN2); //frente direita
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+    set_bit(PORTB, BIN1); //frente esquerda
 }
 
 void tras() {
-    set_bit(PORTD, AIN1);
-    clr_bit(PORTD, AIN2); //frente direita
+    set_bit(PORTB, AIN1);
+    clr_bit(PORTB, AIN2); //frente direita
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+    set_bit(PORTB, BIN1); //frente esquerda
 
 }
 
 void motor_off() {
-    clr_bit(PORTD, AIN1);
-    clr_bit(PORTD, AIN2);
+    clr_bit(PORTB, AIN1);
+    clr_bit(PORTB, AIN2);
     clr_bit(PORTD, BIN2);
-    clr_bit(PORTD, BIN1);
+    clr_bit(PORTB, BIN1);
 }
 
 void freio() {
@@ -368,10 +368,10 @@ void freio() {
 }
 
 void direita() {
-    set_bit(PORTD, AIN1); //tras direita
-    clr_bit(PORTD, AIN2);
+    set_bit(PORTB, AIN1); //tras direita
+    clr_bit(PORTB, AIN2);
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+    set_bit(PORTB, BIN1); //frente esquerda
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
@@ -380,10 +380,10 @@ void direita() {
 }
 
 void esquerda() {
-    clr_bit(PORTD, AIN1);
-    set_bit(PORTD, AIN2); //direita frente
+    clr_bit(PORTB, AIN1);
+    set_bit(PORTB, AIN2); //direita frente
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //esquerda trás
+    set_bit(PORTB, BIN1); //esquerda trás
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
@@ -442,11 +442,11 @@ int PID_traseiro(int erro_traseiro, int tempo_tras) {
 
 
 int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_passed, int u_traseir) {
-    if ((!tst_bit(PORTD, PD2)) && tst_bit(PORTD, PD4)) {
+    if ((!tst_bit(PORTD, sensor_de_curva)) && tst_bit(PORTD, sensor_de_parada)) {
         contador++;
         entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, tempo_passed, u_traseir); // Verifica se é uma curva
     } 
-    else if((!tst_bit(PORTD, PD2)) && (!tst_bit(PORTD, PD4)))   //verifica se é crizamento
+    else if((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada)))   //verifica se é crizamento
     {
         setDuty_1(PWMA);
         setDuty_2(PWMB);
