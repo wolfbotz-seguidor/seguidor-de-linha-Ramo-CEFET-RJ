@@ -42,6 +42,7 @@ int PWMA, PWMB; // Modulação de largura de pulso enviada pelo PID
 int PWMA_C, PWMB_C; //PWM de curva com ajuste do PID
 int entrou;
 int contador = 0, acionador = 0; // Borda
+int marcadores = 6;
 int erroAnterior_curva = 0;
 int Turn_curva, p_curva, d_curva, i_curva, integral_curva = 0;
 char s [] = "Início da leitura";
@@ -61,7 +62,7 @@ volatile char flag_com = 0; //flag que indica se houve recepção de dado
 unsigned int millis = 0;
 
 ISR(TIMER0_OVF_vect) {
-    TCNT0 = 99; //Recarrega o Timer 0 para que a contagem seja 10ms novamente
+    TCNT0 = 255; //Recarrega o Timer 0 para que a contagem seja 1ms novamente
     millis++; //Incrementa a variável millis a cada 10ms
 }
 
@@ -100,9 +101,7 @@ int main(void) {
     int leitura5 = 0;
     int leitura6 = 0;
     int leitura7 = 0;
-    int leitura8 = 0;
-    //DDRC = 0b00000000; //definido como entrada      
-    //PORTC = 0b00000000; //pull-ups internos desatvados
+
     DDRD = 0b01111000; //PD6 - PD3 definidos como saída
     PORTD = 0b00000000; //inicializados em nível baixo
     DDRB = 0b00100110; //Habilita PB1 e PB2 e PB5 como saída   PB1 e PB2 são portas PWM
@@ -113,7 +112,7 @@ int main(void) {
     UART_enviaString(s); //Envia um texto para o computador
 
     TCCR0B = 0b00000101; //TC0 com prescaler de 1024
-    TCNT0 = 99; //Inicia a contagem em 100 para, no final, gerar 10ms
+    TCNT0 = 255; //Inicia a contagem em 100 para, no final, gerar 1ms
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
 
     TCCR1A = 0xA2; //Configura operação em fast PWM, utilizando registradores OCR1x para comparação
@@ -127,6 +126,13 @@ int main(void) {
 
     for (int i = 0; i < 120; i++) {
         //qtra.calibrate();
+        /*
+        Printam no serial (em um outro código) os valores pra ver o máximo e mínimo de cada sensor,
+        porque não necessariamente eles chegam em 0 e 1023.
+        (Alterar o limite do conversor AD através de ifs no main)
+        Após isso determinar o limiar de todos os sensores para que eles tenham os mesmos valores do AD. 
+        Para que todos tenham um limite inferior e superior igual.
+        */
         _delay_ms(5);
     }
 
@@ -147,7 +153,6 @@ int main(void) {
         leitura5 = le_ADC(4);
         leitura6 = le_ADC(5); //sensor de borda
         leitura7 = le_ADC(6);
-        //leitura8 = le_ADC(7);
         int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura7};
         int sensor_borda = leitura6;
 
@@ -200,7 +205,7 @@ int main(void) {
         }
 
         //função freio
-        while (contador >= 4) {
+        while (contador >= marcadores) {
             freio();
         }
 
