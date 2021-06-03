@@ -40,7 +40,7 @@ int Kp = 38; //prescale de 100 - prescale int
 int Kd = 82; //prescale de 100 - prescale int
 int Ki = 0; // Variáveis que são modificadas no PID - prescale de 100 ou mais
 int Kp_tras = 2, Kd_tras = 0, Ki_tras = 0;
-int PWMR = 200, PWMAux = 0; // valor da força do motor em linha reta
+int PWMR = 200; // valor da força do motor em linha reta
 int PWM_Curva = 150; //PWM ao entrar na curva
 int erro, p, d, erroAnterior = 0, i, integral = 0, Turn = 0; //Área PID -erro também possui prescale = 100
 int pt, dt, it;
@@ -121,7 +121,7 @@ int main(void) {
     int sensores_traseiros [] = {sensor_tras_direito, sensor_tras_esquerdo};
     int soma_tras = 0;
 
-    DDRD = 0b11110100; //PD5 e PD2 e PD4, PD6 e PD7 definidos como saída
+    DDRD = 0b00100000; //PD5 como saída e PD2, PD4, PD6 e PD7 como entrada 
     PORTD = 0b00000000; //inicializados em nível baixo
     DDRB = 0b00100111; //Habilita PB1 e PB2 e PB0 como saída
     PORTB = 0b00000000; //PORTB inicializa desligado e saídas sem pull up
