@@ -77,7 +77,7 @@ volatile char flag_com = 0; //flag que indica se houve recepção de dado
 unsigned int millis = 0;
 
 ISR(TIMER0_OVF_vect) {
-    TCNT0 = 99; //Recarrega o Timer 0 para que a contagem seja 10ms novamente
+    TCNT0 = 255; //Recarrega o Timer 0 para que a contagem seja 1ms novamente
     millis++; //Incrementa a variável millis a cada 10ms
 }
 
@@ -133,7 +133,7 @@ int main(void) {
     UART_enviaString(s); //Envia um texto para o computador
 
     TCCR0B = 0b00000101; //TC0 com prescaler de 1024
-    TCNT0 = 99; //Inicia a contagem em 100 para, no final, gerar 10ms
+    TCNT0 = 255; //Inicia a contagem em 100 para, no final, gerar 1ms
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
 
     TCCR2A = 0xA3; //Configura operação em fast PWM, utilizando registradores OCR1x para comparação
@@ -147,6 +147,13 @@ int main(void) {
 
     for (int i = 0; i < 120; i++) {
         //qtra.calibrate();
+        /*
+        Printam no serial (em um outro código) os valores pra ver o máximo e mínimo de cada sensor,
+        porque não necessariamente eles chegam em 0 e 1023.
+        (Alterar o limite do conversor AD através de ifs no main)
+        Após isso determinar o limiar de todos os sensores para que eles tenham os mesmos valores do AD. 
+        Para que todos tenham um limite inferior e superior igual.
+        */
         _delay_ms(5);
     }
 
