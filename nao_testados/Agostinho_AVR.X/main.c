@@ -45,6 +45,8 @@ int contador = 0, acionador = 0; // Borda
 int marcadores = 6;
 int erroAnterior_curva = 0;
 int Turn_curva, p_curva, d_curva, i_curva, integral_curva = 0;
+
+
 char s [] = "Início da leitura";
 char buffer[5]; //String que armazena valores de entrada para serem printadas
 volatile char ch; //armazena o caractere lido
@@ -157,7 +159,7 @@ int main(void) {
         int sensor_borda = leitura6;
 
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d\n", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
             UART_enviaCaractere(0x20); //espaço
