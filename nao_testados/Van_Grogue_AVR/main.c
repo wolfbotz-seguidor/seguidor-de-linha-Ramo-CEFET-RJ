@@ -137,6 +137,7 @@ int main(void) {
     //----> Calibração dos Sensores frontais <----\\
 
     for (int i = 0; i < 120; i++) {
+        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         //qtra.calibrate();
         _delay_ms(5);
     }
@@ -152,14 +153,7 @@ int main(void) {
 
     while (1) {
         delta_T = millis;
-        leitura1 = le_ADC(0); //Sensores frontais
-        leitura2 = le_ADC(1);
-        leitura3 = le_ADC(2);
-        leitura4 = le_ADC(3); // sensores forntais
-        leitura5 = le_ADC(4);
-        leitura6 = le_ADC(5); //sensor de borda
-        int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura6};
-
+        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
