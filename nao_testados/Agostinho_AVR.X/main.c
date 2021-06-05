@@ -96,13 +96,6 @@ int main(void) {
     int denominador_direito = 6;
     int denominador_esquerdo = 6;
     int soma_total = 0;
-    int leitura1 = 0;
-    int leitura2 = 0;
-    int leitura3 = 0;
-    int leitura4 = 0;
-    int leitura5 = 0;
-    int leitura6 = 0;
-    int leitura7 = 0;
 
     DDRD = 0b01111000; //PD6 - PD3 definidos como saída
     PORTD = 0b00000000; //inicializados em nível baixo
@@ -121,20 +114,22 @@ int main(void) {
 
     setFreq(3); //Seleciona opção para frequência
 
+
     sei(); //Habilita as interrupções
 
 
     //----> Calibração dos Sensores frontais <----\\
 
     for (int i = 0; i < 120; i++) {
+        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
         //qtra.calibrate();
         /*
-        Printam no serial (em um outro código) os valores pra ver o máximo e mínimo de cada sensor,
+        Printar no serial (em um outro código) os valores pra ver o máximo e mínimo de cada sensor,
         porque não necessariamente eles chegam em 0 e 1023.
         (Alterar o limite do conversor AD através de ifs no main)
         Após isso determinar o limiar de todos os sensores para que eles tenham os mesmos valores do AD. 
         Para que todos tenham um limite inferior e superior igual.
-        */
+         */
         _delay_ms(5);
     }
 
@@ -148,15 +143,8 @@ int main(void) {
 
     while (1) {
         delta_T = millis;
-        leitura1 = le_ADC(0); //Sensores frontais
-        leitura2 = le_ADC(1);
-        leitura3 = le_ADC(2);
-        leitura4 = le_ADC(3); // sensores forntais
-        leitura5 = le_ADC(4);
-        leitura6 = le_ADC(5); //sensor de borda
-        leitura7 = le_ADC(6);
-        int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura7};
-        int sensor_borda = leitura6;
+        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
+        int sensor_borda = le_ADC(5);
 
 
         for (int i = 0; i < 7; i++) {
@@ -195,13 +183,9 @@ int main(void) {
         if ((sensor_borda < 300) && (acionador == 0) && soma_total > 100) {
             contador++;
             acionador = 1;
-        }
-
-        else if ((sensor_borda > 500) && (acionador == 1)) {
+        } else if ((sensor_borda > 500) && (acionador == 1)) {
             acionador = 0;
-        }
-        
-        else if ((sensor_borda > 500) && soma_total < 100)     //situação de cruzamento
+        } else if ((sensor_borda > 500) && soma_total < 100) //situação de cruzamento
         {
             acionador = 0;
         }
@@ -214,7 +198,7 @@ int main(void) {
         //-----> Área do senstido de giro
 
         if (erro < 0) //virar para a esquerda
-        {   
+        {
             entrouCurva(sensor_borda, soma_total, erro, delta_T);
             set_bit(PORTB, PB5); //liga o LED
             while (erro < 0) {
@@ -222,8 +206,7 @@ int main(void) {
             }
             clr_bit(PORTB, PB5);
 
-        } 
-        else if (erro > 0) {
+        } else if (erro > 0) {
             entrouCurva(sensor_borda, soma_total, erro, delta_T);
             set_bit(PORTB, PB5); //liga o LED
             while (erro > 0) {
@@ -231,9 +214,9 @@ int main(void) {
             }
             clr_bit(PORTB, PB5);
         }
-        
+
         //A função que fazia o robô rodar em seu próprio eixo foi removida
-        
+
 
         //------> Limitando PWM
 
@@ -369,7 +352,7 @@ void esquerda() {
 int entrouCurva(int sensor, int frontal, int valor_erro, int tempo_passado) {
     if (sensor < 550 && frontal > 100) {
         switch (entrou) {
-            case 0:     //entrou na curva
+            case 0: //entrou na curva
                 u_curva = PID_Curva(valor_erro, tempo_passado);
                 PWMA_C = PWM_Curva - u_curva;
                 PWMB_C = PWM_Curva + u_curva;
@@ -384,13 +367,11 @@ int entrouCurva(int sensor, int frontal, int valor_erro, int tempo_passado) {
                 setDuty_2(PWMB);
                 break;
         }
-    }
-    else if(sensor > 550 && frontal < 100){     //região de cruzamento
+    } else if (sensor > 550 && frontal < 100) { //região de cruzamento
         setDuty_1(PWMA);
         setDuty_2(PWMB);
     }
 }
-
 
 int PID_Curva(int error_curva, int tempo_curva) {
     p_curva = (error_curva * Kp) / prescale; // Proporcao
