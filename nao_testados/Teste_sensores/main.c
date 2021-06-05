@@ -51,52 +51,38 @@ ISR(USART_RX_vect) {
 //------------------------------------------------------
 
 void main(void) {
-    DDRD = 0b00000000;  //PORTD como entrada
+    DDRD = 0b00000000; //PORTD como entrada
     PORTD = 0b00000000; //PORTD inicia em 0
-    
-    int leitura1 = 0;
-    int leitura2 = 0;
-    int leitura3 = 0;
-    int leitura4 = 0;
-    int leitura5 = 0;
-    int leitura6 = 0;
-    int leitura7 = 0;
-    
+
+
     int sensores_traseiros [] = {sensor_tras_direito, sensor_tras_esquerdo};
     int sensores_laterais [] = {sensor_de_curva, sensor_de_parada};
-    
+
     UART_config(); //Inicializa a comunicação UART
     inicializa_ADC(); //Configura o ADC
-    UART_enviaString(s); //Envia um texto para o computador    while (1) {
+    UART_enviaString(s); //Envia um texto para o computador
     
-    while(1){
-        leitura1 = le_ADC(0); //Sensores frontais
-        leitura2 = le_ADC(1);
-        leitura3 = le_ADC(2);
-        leitura4 = le_ADC(3); // sensores forntais
-        leitura5 = le_ADC(4);
-        leitura6 = le_ADC(5); //sensor de borda
-        leitura7 = le_ADC(6);
-        int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura7};
-        int sensor_borda = leitura6;
-        
+    while (1) {
+        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
+        int sensor_borda = le_ADC(5);
+
         //==========Teste dos sensores Frontais====//
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
             UART_enviaCaractere(0x20); //espaço
         }
         UART_enviaCaractere(0x0D); //pula linha
-        
+
         //======Sensor de borda do Agostinho====//
         /*sprintf(buffer, "%4d", sensor_borda);
         UART_enviaString(buffer); //Envia para o computador
         UART_enviaCaractere(0x0D); //pula linha*/
-     
-        
-        
-    //==============Robô Celta Caindo============//
-        /*int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura6};
+
+
+
+        //==============Robô Celta Caindo============//
+        /*int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5);
         for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
@@ -120,12 +106,12 @@ void main(void) {
             UART_enviaCaractere(0x20); //espaço
         }
         UART_enviaCaractere(0x0D); //pula linha*/
-        
-        
-    //==============Robô Van Grogue============// 
-        
+
+
+        //==============Robô Van Grogue============// 
+
         //======Sensores frontais=====///
-        /*int sensores_frontais[] = {leitura1, leitura2, leitura3, leitura4, leitura5, leitura6};
+        /*int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d\n", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
@@ -140,6 +126,6 @@ void main(void) {
             UART_enviaCaractere(0x20); //espaço
         }
         UART_enviaCaractere(0x0D); //pula linha*/
-        
+
     }
 }
