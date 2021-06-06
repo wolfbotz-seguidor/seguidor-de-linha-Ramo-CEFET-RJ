@@ -12,6 +12,7 @@
 #include <stdio.h>          //Bilioteca do C
 #include <util/delay.h>     //Biblioteca geradora de atraso
 #include "UART.h"           //Biblioteca da comunicação UART
+#include "configbits.txt"   //configura os fusíveis
 
 //variáveis de comando para os registradores
 #define set_bit(y,bit) (y|=(1<<bit)) //coloca em 1 o bit x da variável Y
