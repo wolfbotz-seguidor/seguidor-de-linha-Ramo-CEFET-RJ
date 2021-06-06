@@ -13,6 +13,7 @@
 #include <util/delay.h>     //Biblioteca geradora de atraso
 #include "UART.h"           //Biblioteca da comunicação UART
 #include "ADC.h"            //Biblioteca do conversor AD
+#include "configbits.txt"   //configura os fusíveis
 
 //variáveis de comando para os registradores
 #define set_bit(y,bit) (y|=(1<<bit)) //coloca em 1 o bit x da variável Y
@@ -91,7 +92,7 @@ int PID_Curva(int error_curva, int tempo_curva);
 
 int main(void) {
     unsigned int delta_T = 0;
-    int peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 100
+    int peso [] = {-3, -2, -1, 1, 2, 3};
     int soma_direito, soma_esquerdo;
     int denominador_direito = 6;
     int denominador_esquerdo = 6;
