@@ -124,7 +124,7 @@ int main(void) {
     inicializa_ADC(); //Configura o ADC
     UART_enviaString(s); //Envia um texto para o computador
 
-    TCCR0B = 0b00000101; //TC0 com prescaler de 1024
+    TCCR0B = 0b00000111; //TC0 com prescaler de 1024
     TCNT0 = 255; //Inicia a contagem em 100 para, no final, gerar 1ms
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
 
