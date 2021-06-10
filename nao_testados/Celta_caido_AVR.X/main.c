@@ -149,7 +149,7 @@ int main(void) {
         (Alterar o limite do conversor AD através de ifs no main)
         Após isso determinar o limiar de todos os sensores para que eles tenham os mesmos valores do AD. 
         Para que todos tenham um limite inferior e superior igual.
-        */
+         */
         _delay_ms(5);
     }
 
@@ -196,7 +196,11 @@ int main(void) {
 
         erro = 0 - soma_total; //valor esperado(estar sempre em cima da linha) - valor medido
 
-        sprintf(buffer, "%4d\n", erro); //Converte para string
+        soma_esquerdo = 0;
+        soma_direito = 0;
+        soma_total = 0;     //precisa-se zeraar para não gerar o  acúmulo nessas variáveis
+        
+        sprintf(buffer, "%5d\n", erro); //Converte para string
         UART_enviaString(buffer); //Envia para o computador
         UART_enviaCaractere(0x0D); //pula linha
 
@@ -436,14 +440,12 @@ int PID_traseiro(int erro_traseiro, int tempo_tras) {
     return Turn_traseiro; //retorna os valores após o PID
 }
 
-
-
 int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_passed, int u_traseir) {
     if ((!tst_bit(PORTD, sensor_de_curva)) && tst_bit(PORTD, sensor_de_parada)) {
         contador++;
         entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, tempo_passed, u_traseir); // Verifica se é uma curva
-    } 
-    else if((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada)))   //verifica se é crizamento
+    }
+    else if ((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada))) //verifica se é crizamento
     {
         setDuty_1(PWMA);
         setDuty_2(PWMB);
