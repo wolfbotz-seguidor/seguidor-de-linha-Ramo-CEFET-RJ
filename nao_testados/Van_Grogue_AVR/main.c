@@ -54,6 +54,7 @@ int contador = 0, numParada = 4; // Borda
 int curvaValor = 0, entrou = 0;
 unsigned int timer2, TempoEspera = 100;
 int ejetor = 0;
+int tempo_atual = 0;
 
 char s [] = "Início da leitura";
 char buffer[5]; //String que armazena valores de entrada para serem printadas
@@ -146,7 +147,8 @@ int main(void) {
 
 
     while (1) {
-        delta_T = millis;
+        tempo_atual = millis;
+        delta_T = tempo_atual - timer2;
         int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
@@ -179,24 +181,26 @@ int main(void) {
         soma_direito = 0;
         soma_total = 0;
         
-        u = PID(erro, delta_T);
+        if(delta_T >= TempoEspera){
+            u = PID(erro, delta_T);
 
-        PWMA = PWMR - u;
-        PWMB = PWMR + u;
-
+            PWMA = PWMR - u;
+            PWMB = PWMR + u;
+            timer2 = 0;
+        }
         //--------------->AREA DOS SENSORES<---------------
 
         switch (ejetor) {
             case 0:
                 if ((!(tst_bit(PORTB, sensor_de_curva))) || (!(tst_bit(PORTD, sensor_de_parada))))//verifica se sos sensores estão em nível 0
                 {
-                    timer2 = delta_T;
+                    timer2 = tempo_atual;
                     ejetor = 1;
                 }
                 break;
 
             case 1:
-                if ((delta_T - timer2) > TempoEspera) {
+                if ((delta_T) > TempoEspera) {
                     parada(sensor_de_curva, sensor_de_parada, erro, delta_T); // Verifica se é um marcador de parada
                     ejetor = 2;
                 }
