@@ -61,6 +61,14 @@ int ejetor = 0;
 int prescale_tras = 10, erro_tras = 0, u_tras = 0;
 int integral_traseiro = 0, Turn_traseiro = 0;
 
+unsigned int delta_T = 0;
+int peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 100
+int soma_direito = 0, soma_esquerdo = 0;
+int denominador_direito = 6;
+int denominador_esquerdo = 6;
+int soma_total = 0;
+
+
 char s [] = "Início da leitura";
 char buffer[5]; //String que armazena valores de entrada para serem printadas
 volatile char ch; //armazena o caractere lido
@@ -106,12 +114,7 @@ int PID_traseiro(int erro_traseiro, int tempo_tras);
 int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_passed, int u_traseir);
 
 int main(void) {
-    unsigned int delta_T = 0;
-    int peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 100
-    int soma_direito, soma_esquerdo;
-    int denominador_direito = 6;
-    int denominador_esquerdo = 6;
-    int soma_total = 0;
+
 
     int sensores_traseiros [] = {sensor_tras_direito, sensor_tras_esquerdo};
     int soma_tras = 0;
@@ -198,8 +201,8 @@ int main(void) {
 
         soma_esquerdo = 0;
         soma_direito = 0;
-        soma_total = 0;     //precisa-se zeraar para não gerar o  acúmulo nessas variáveis
-        
+        soma_total = 0; //precisa-se zeraar para não gerar o  acúmulo nessas variáveis
+
         sprintf(buffer, "%5d\n", erro); //Converte para string
         UART_enviaString(buffer); //Envia para o computador
         UART_enviaCaractere(0x0D); //pula linha
@@ -444,8 +447,7 @@ int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_pa
     if ((!tst_bit(PORTD, sensor_de_curva)) && tst_bit(PORTD, sensor_de_parada)) {
         contador++;
         entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, tempo_passed, u_traseir); // Verifica se é uma curva
-    }
-    else if ((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada))) //verifica se é crizamento
+    } else if ((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada))) //verifica se é crizamento
     {
         setDuty_1(PWMA);
         setDuty_2(PWMB);
