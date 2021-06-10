@@ -440,7 +440,7 @@ int PID_Curva(int error_curva, int tempo_curva) {
 }
 
 int PID_traseiro(int erro_traseiro, int tempo_tras) {
-    pt = (erro_traseiro * Kp) / prescale; // Proporcao
+    pt = (erro_traseiro * Kp) / prescale_tras; // Proporcao
 
     integral_traseiro += erro_traseiro; // Integral
     it = ((Ki_tras * integral_traseiro) / prescale_tras) * tempo_tras;
