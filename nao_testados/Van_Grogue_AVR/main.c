@@ -101,17 +101,10 @@ int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_pa
 int main(void) {
     unsigned int delta_T = 0;
     int peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 100
-    int soma_direito, soma_esquerdo;
+    int soma_direito = 0, soma_esquerdo = 0;
     int denominador_direito = 6;
     int denominador_esquerdo = 6;
     int soma_total = 0;
-    int leitura1 = 0;
-    int leitura2 = 0;
-    int leitura3 = 0;
-    int leitura4 = 0;
-    int leitura5 = 0;
-    int leitura6 = 0;
-
 
     DDRD = 0b01111000; //PD3 - PD6 definidos como saída, PD7 como entrada
     PORTD = 0b10000000; //inicializados em nível baixo
