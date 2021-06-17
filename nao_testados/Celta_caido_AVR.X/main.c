@@ -380,9 +380,9 @@ void freio() {
     _delay_ms(60000);
 }
 
-void direita() {
-    set_bit(PORTB, AIN1); //tras direita
-    clr_bit(PORTB, AIN2);
+void direita() {    //pode criar uma função só para curva
+    clr_bit(PORTB, AIN1);
+    set_bit(PORTB, AIN2); //frente direita
     clr_bit(PORTD, BIN2);
     set_bit(PORTB, BIN1); //frente esquerda
 
@@ -394,9 +394,9 @@ void direita() {
 
 void esquerda() {
     clr_bit(PORTB, AIN1);
-    set_bit(PORTB, AIN2); //direita frente
+    set_bit(PORTB, AIN2); //frente direita
     clr_bit(PORTD, BIN2);
-    set_bit(PORTB, BIN1); //esquerda trás
+    set_bit(PORTB, BIN1); //frente esquerda
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
