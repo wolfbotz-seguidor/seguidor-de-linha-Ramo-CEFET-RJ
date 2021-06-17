@@ -343,8 +343,8 @@ void freio() {
 }
 
 void direita() {
-    set_bit(PORTD, AIN1); //tras direita
-    clr_bit(PORTD, AIN2);
+    clr_bit(PORTD, AIN1); //tras direita
+    set_bit(PORTD, AIN2); //frente direita 
     clr_bit(PORTD, BIN2);
     set_bit(PORTD, BIN1); //frente esquerda
 
@@ -358,7 +358,7 @@ void esquerda() {
     clr_bit(PORTD, AIN1);
     set_bit(PORTD, AIN2); //direita frente
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //esquerda trás
+    set_bit(PORTD, BIN1); //esquerda frente
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
