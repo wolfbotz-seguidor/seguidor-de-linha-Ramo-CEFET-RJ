@@ -13,7 +13,7 @@
 #include <util/delay.h>     //Biblioteca geradora de atraso
 #include "UART.h"           //Biblioteca da comunicação UART
 #include "ADC.h"            //Biblioteca do conversor AD
-#include "configbits.txt"   //configura os fusíveis
+//#include "configbits.txt"   //configura os fusíveis
 
 //variáveis de comando para os registradores
 #define set_bit(y,bit) (y|=(1<<bit)) //coloca em 1 o bit x da variável Y
@@ -23,23 +23,23 @@
 
 
 //Lado direito
-#define AIN2 PD6// Quando em HIGH, roda direita anda para frente
-#define AIN1 PD5 
+#define AIN2 PD6
+#define AIN1 PD5 // Quando em HIGH, roda direita anda para frente 
 
 //Lado Esquerdo
-#define BIN1 PD4 // Quando em HIGH, roda esquerda anda para frente
-#define BIN2 PD3
+#define BIN1 PD4 
+#define BIN2 PD3 // Quando em HIGH, roda esquerda anda para frente
 
 
 #define sensor_de_curva PB0
 #define sensor_de_parada PD7
 
 
-int Kp = 38; //prescale de 100 - prescale int
-int Kd = 82; //prescale de 100 - prescale int
-int Ki = 0; // Variáveis que são modificadas no PID - prescale de 100 ou mais
-int PWMR = 200; // valor da força do motor em linha reta
-int PWM_Curva = 150; //PWM ao entrar na curva
+int Kp = 2; //prescale de 100 - prescale int
+int Kd = 1; //prescale de 100 - prescale int
+int Ki = 1; // Variáveis que são modificadas no PID - prescale de 100 ou mais
+int PWMR = 400; // valor da força do motor em linha reta
+int PWM_Curva = 350; //PWM ao entrar na curva
 int erro, p, d, erroAnterior = 0, i, integral = 0, Turn = 0; //Área PID -erro também possui prescale = 100
 int u = 0; //valor de retorno do PID
 int u_curva = 0;
@@ -73,7 +73,7 @@ volatile char flag_com = 0; //flag que indica se houve recepção de dado
 unsigned int millis = 0;
 
 ISR(TIMER0_OVF_vect) {
-    TCNT0 = 255; //Recarrega o Timer 0 para que a contagem seja 1ms novamente
+    TCNT0 = 240; //Recarrega o Timer 0 para que a contagem seja 1ms novamente
     millis++; //Incrementa a variável millis a cada 10ms
 }
 
@@ -88,16 +88,16 @@ ISR(USART_RX_vect) {
 void setDuty_1(int duty); //Seleciona o duty cycle na saída digital  3
 void setFreq(char option); //Seleciona a frequência de operação do PWM
 void setDuty_2(int duty);
-int PID(int error, int tempo);
+int PID(int error);
 void frente();
 void tras();
 void esquerda();
 void direita();
 void motor_off();
 void freio();
-void entrou_na_curva(int sensor, int sensor2, int valor_erro, int tempo_passado);
-int PID_Curva(int error_curva, int tempo_curva);
-int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_passed);
+void entrou_na_curva(int sensor, int sensor2, int valor_erro);
+int PID_Curva(int error_curva);
+int parada(int sensor_esquerdo, int sensor_direito, int value_erro);
 
 int main(void) {
     unsigned int delta_T = 0;
@@ -108,8 +108,8 @@ int main(void) {
     int soma_total = 0;
 
     DDRD = 0b01111000; //PD3 - PD6 definidos como saída, PD7 como entrada
-    PORTD = 0b10000000; //inicializados em nível baixo
-    DDRB = 0b00100000; //Habilita PB0 como entrada e PB5 como saída
+    PORTD = 0b00000000; //inicializados em nível baixo
+    DDRB = 0b00100110; //Habilita PB0 como entrada e PB5, PB1 e PB2 como saída
     PORTB = 0b00000000; //PORTB inicializa desligado e saídas sem pull up
 
 
@@ -119,20 +119,21 @@ int main(void) {
     UART_enviaString(s); //Envia um texto para o computador
 
     TCCR0B = 0b00000101; //TC0 com prescaler de 1024
-    TCNT0 = 255; //Inicia a contagem em 100 para, no final, gerar 1ms
+    TCNT0 = 240; //Inicia a contagem em 100 para, no final, gerar 1ms
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
 
     TCCR1A = 0xA2; //Configura operação em fast PWM, utilizando registradores OCR1x para comparação
 
-    setFreq(3); //Seleciona opção para frequência
+    setFreq(4); //Seleciona opção para frequência
 
     sei(); //Habilita as interrupções
 
 
-    //----> Calibração dos Sensores frontais <----\\
+    //----> Calibração dos Sensores frontais <----//
 
     for (int i = 0; i < 120; i++) {
-        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
+        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+        //int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         //qtra.calibrate();
         _delay_ms(5);
     }
@@ -149,7 +150,8 @@ int main(void) {
     while (1) {
         tempo_atual = millis;
         delta_T = tempo_atual - timer2;
-        int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
+        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+        //int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
         for (int i = 0; i < 7; i++) {
             sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
             UART_enviaString(buffer); //Envia para o computador
@@ -171,7 +173,7 @@ int main(void) {
 
         erro = 0 - soma_total; //valor esperado(estar sempre em cima da linha) - valor medido
 
-        sprintf(buffer, "%45\n", erro); //Converte para string
+        sprintf(buffer, "%5d\n", erro); //Converte para string
         UART_enviaString(buffer); //Envia para o computador
         UART_enviaCaractere(0x0D); //pula linha
 
@@ -181,18 +183,25 @@ int main(void) {
         soma_direito = 0;
         soma_total = 0;
         
-        if(delta_T >= TempoEspera){
-            u = PID(erro, delta_T);
+        //if(delta_T >= TempoEspera){
+            u = PID(erro);
 
             PWMA = PWMR - u;
             PWMB = PWMR + u;
-            timer2 = 0;
-        }
+            //timer2 = 0;
+        //}
+        
+        frente();
+        setDuty_1(PWMA);
+        setDuty_2(PWMB);
+        
+        
         //--------------->AREA DOS SENSORES<---------------
 
         switch (ejetor) {
             case 0:
-                if ((!(tst_bit(PORTB, sensor_de_curva))) || (!(tst_bit(PORTD, sensor_de_parada))))//verifica se sos sensores estão em nível 0
+                if ((!(tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva)) 
+                || (!(tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)))//verifica se sos sensores estão em nível 0
                 {
                     timer2 = tempo_atual;
                     ejetor = 1;
@@ -201,13 +210,14 @@ int main(void) {
 
             case 1:
                 if ((delta_T) > TempoEspera) {
-                    parada(sensor_de_curva, sensor_de_parada, erro, delta_T); // Verifica se é um marcador de parada
+                    parada(sensor_de_curva, sensor_de_parada, erro); // Verifica se é um marcador de parada
                     ejetor = 2;
                 }
                 break;
 
             case 2:
-                if ((tst_bit(PORTB, sensor_de_curva)) && (tst_bit(PORTD, sensor_de_parada))) {
+                if ((tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva) 
+                && (tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)) {
                     timer2 = 0;
                     ejetor = 0;
                 }
@@ -218,20 +228,22 @@ int main(void) {
 
         if (erro < 0) //virar para a esquerda
         {
-            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro, delta_T);
+            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro);
             set_bit(PORTB, PB5); //liga o LED
-            while (erro < 0) {
-                esquerda();
-            }
-            clr_bit(PORTB, PB5);
+            /*while (erro < 0) {
+                frente();
+                setDuty_1(PWMA_C);
+                setDuty_2(PWMB_C);
+            }*/
 
         } else if (erro > 0) {
-            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro, delta_T);
+            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro);
             set_bit(PORTB, PB5); //liga o LED
-            while (erro > 0) {
-                direita();
-            }
-            clr_bit(PORTB, PB5);
+            /*while (erro > 0) {
+                frente();
+                setDuty_1(PWMA_C);
+                setDuty_2(PWMB_C);
+            }*/
         }
 
         //A função que fazia o robô rodar em seu próprio eixo foi removida
@@ -279,13 +291,13 @@ void setFreq(char option) {
 
 } //end setFrequency
 
-int PID(int error, int tempo) {
+int PID(int error) {
     p = (error * Kp) / prescale; // Proporcao
 
     integral += error; // Integral
-    i = ((Ki * integral) / prescale) * tempo;
+    i = ((Ki * integral) / prescale);
 
-    d = ((Kd * (error - erroAnterior)) / prescale) / tempo; // Derivada
+    d = ((Kd * (error - erroAnterior)) / prescale); // Derivada
     erroAnterior = error;
 
     Turn = p + i + d;
@@ -294,17 +306,17 @@ int PID(int error, int tempo) {
 
 void frente() {
 
-    clr_bit(PORTD, AIN1);
-    set_bit(PORTD, AIN2); //frente direita
-    clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+    set_bit(PORTD, AIN1); //frente direita
+    clr_bit(PORTD, AIN2);
+    set_bit(PORTD, BIN2); //frente esquerda
+    clr_bit(PORTD, BIN1); 
 }
 
 void tras() {
-    set_bit(PORTD, AIN1);
-    clr_bit(PORTD, AIN2); //frente direita
+    clr_bit(PORTD, AIN1);
+    set_bit(PORTD, AIN2); //tras direita
     clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+    set_bit(PORTD, BIN1); //tras esquerda
 
 }
 
@@ -318,15 +330,15 @@ void motor_off() {
 void freio() {
     frente();
 
-    setDuty_1(50);
-    setDuty_2(50);
+    setDuty_1(200);
+    setDuty_2(200);
 
     _delay_ms(500);
 
     tras();
 
-    setDuty_1(10);
-    setDuty_2(10);
+    setDuty_1(150);
+    setDuty_2(150);
 
     _delay_ms(5);
 
@@ -342,38 +354,39 @@ void freio() {
     _delay_ms(60000);
 }
 
-void direita() {
-    clr_bit(PORTD, AIN1); //tras direita
-    set_bit(PORTD, AIN2); //frente direita 
-    clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //frente esquerda
+/*void direita() {
+    set_bit(PORTD, AIN1); //frente direita
+    clr_bit(PORTD, AIN2); //tras direita 
+    set_bit(PORTD, BIN2);
+    clr_bit(PORTD, BIN1); //frente esquerda
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
 
     //calibração dos sensores frontais - seta o valor médio
-}
+}*/
 
-void esquerda() {
-    clr_bit(PORTD, AIN1);
-    set_bit(PORTD, AIN2); //direita frente
-    clr_bit(PORTD, BIN2);
-    set_bit(PORTD, BIN1); //esquerda frente
+/*void esquerda() {
+    set_bit(PORTD, AIN1); //direita frente
+    clr_bit(PORTD, AIN2); //direita tras
+    set_bit(PORTD, BIN2);
+    clr_bit(PORTD, BIN1); //esquerda frente
 
     setDuty_1(PWMA_C);
     setDuty_2(PWMB_C);
 
 
     //calibração dos sensores frontais - seta o valor médio
-}
+}*/
 
-void entrou_na_curva(int sensor, int sensor2, int valor_erro, int tempo_passado) {
+void entrou_na_curva(int sensor, int sensor2, int valor_erro) {
     if ((!tst_bit(PORTD, sensor_de_curva)) && tst_bit(PORTD, sensor_de_parada)) {
         switch (entrou) {
             case 0: //entrou na curva
-                u_curva = PID_Curva(valor_erro, tempo_passado);
+                u_curva = PID_Curva(valor_erro);
                 PWMA_C = PWM_Curva - u_curva;
                 PWMB_C = PWM_Curva + u_curva;
+                frente();
                 setDuty_1(PWMA_C);
                 setDuty_2(PWMB_C);
                 entrou = 1;
@@ -381,32 +394,34 @@ void entrou_na_curva(int sensor, int sensor2, int valor_erro, int tempo_passado)
 
             case 1:
                 entrou = 0;
+                frente();
                 setDuty_1(PWMA); //témino da curva
                 setDuty_2(PWMB);
+                clr_bit(PORTB, PB5);
                 break;
         }
     }
 }
 
-int PID_Curva(int error_curva, int tempo_curva) {
+int PID_Curva(int error_curva) {
     p_curva = (error_curva * Kp) / prescale; // Proporcao
 
     integral_curva += error_curva; // Integral
-    i_curva = ((Ki * integral_curva) / prescale) * tempo_curva;
+    i_curva = ((Ki * integral_curva) / prescale);
 
-    d_curva = ((Kd * (error_curva - erroAnterior_curva)) / prescale) / tempo_curva; // Derivada
+    d_curva = ((Kd * (error_curva - erroAnterior_curva)) / prescale); // Derivada
     erroAnterior_curva = error_curva;
 
     Turn_curva = p_curva + i_curva + d_curva;
     return Turn_curva; //retorna os valores após o PID
 }
 
-int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int tempo_passed) {
+int parada(int sensor_esquerdo, int sensor_direito, int value_erro) {
     if ((!tst_bit(PORTD, sensor_de_curva)) && tst_bit(PORTD, sensor_de_parada)) {
         contador++;
-        entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, tempo_passed); // Verifica se é uma curva
+        entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro); // Verifica se é uma curva
     } else if ((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada))) //verifica se é crizamento
-    {
+    {   frente();
         setDuty_1(PWMA);
         setDuty_2(PWMB);
     }
