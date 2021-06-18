@@ -56,6 +56,11 @@ unsigned int timer2, TempoEspera = 100;
 int ejetor = 0;
 int tempo_atual = 0;
 
+int valor_min [] = {1023, 1023, 1023, 1023, 1023, 1023};
+int valor_max [] = {0, 0, 0, 0, 0, 0};
+int valor_min_abs = 0, valor_max_abs = 1023;
+
+
 char s [] = "Início da leitura";
 char buffer[5]; //String que armazena valores de entrada para serem printadas
 volatile char ch; //armazena o caractere lido
@@ -98,6 +103,9 @@ void freio();
 void entrou_na_curva(int sensor, int sensor2, int valor_erro);
 int PID_Curva(int error_curva);
 int parada(int sensor_esquerdo, int sensor_direito, int value_erro);
+int calibra_sensores();
+int seta_calibracao();
+int sensores();
 
 int main(void) {
     unsigned int delta_T = 0;
@@ -130,13 +138,10 @@ int main(void) {
 
 
     //----> Calibração dos Sensores frontais <----//
-
-    for (int i = 0; i < 120; i++) {
-        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
-        //int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(5)};
-        //qtra.calibrate();
-        _delay_ms(5);
-    }
+    set_bit(PORTB, PB5); //subrotina de acender e apagar o LED 13
+    calibra_sensores(); //calibração dos sensores
+    sensores(); //determina o limiar dos sensores e printa seus valores na tela
+    //========================//
 
     set_bit(PORTB, PB5); //subrotina de acender e apagar o LED 13
     _delay_ms(1000);
@@ -161,6 +166,7 @@ int main(void) {
 
 
         //região que seta os valores nos sensores frontais após a calibração
+        sensores();
 
         //----------------------------------------------------------------//
 
@@ -182,26 +188,28 @@ int main(void) {
         soma_esquerdo = 0;
         soma_direito = 0;
         soma_total = 0;
-        
-        //if(delta_T >= TempoEspera){
-            u = PID(erro);
 
-            PWMA = PWMR - u;
-            PWMB = PWMR + u;
-            //timer2 = 0;
-        //}
-        
+        u = PID(erro);
+
+        PWMA = PWMR - u;
+        PWMB = PWMR + u;
+
+        if (delta_T >= TempoEspera) {
+
+            timer2 = 0;
+        }
+
         frente();
         setDuty_1(PWMA);
         setDuty_2(PWMB);
-        
-        
+
+
         //--------------->AREA DOS SENSORES<---------------
 
         switch (ejetor) {
             case 0:
-                if ((!(tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva)) 
-                || (!(tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)))//verifica se sos sensores estão em nível 0
+                if ((!(tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva))
+                        || (!(tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)))//verifica se sos sensores estão em nível 0
                 {
                     timer2 = tempo_atual;
                     ejetor = 1;
@@ -216,8 +224,8 @@ int main(void) {
                 break;
 
             case 2:
-                if ((tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva) 
-                && (tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)) {
+                if ((tst_bit(PORTB, sensor_de_curva) >> sensor_de_curva)
+                        && (tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)) {
                     timer2 = 0;
                     ejetor = 0;
                 }
@@ -309,7 +317,7 @@ void frente() {
     set_bit(PORTD, AIN1); //frente direita
     clr_bit(PORTD, AIN2);
     set_bit(PORTD, BIN2); //frente esquerda
-    clr_bit(PORTD, BIN1); 
+    clr_bit(PORTD, BIN1);
 }
 
 void tras() {
@@ -421,7 +429,8 @@ int parada(int sensor_esquerdo, int sensor_direito, int value_erro) {
         contador++;
         entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro); // Verifica se é uma curva
     } else if ((!tst_bit(PORTD, sensor_de_curva)) && (!tst_bit(PORTD, sensor_de_parada))) //verifica se é crizamento
-    {   frente();
+    {
+        frente();
         setDuty_1(PWMA);
         setDuty_2(PWMB);
     }
@@ -429,4 +438,67 @@ int parada(int sensor_esquerdo, int sensor_direito, int value_erro) {
     while (contador == numParada) {
         freio();
     }
+}
+
+int calibra_sensores() {
+    int calibrado = 0;
+    inicializa_ADC(); //Configura o ADC
+    //=====Função que inicializa a calibração====//
+    for (int i = 0; i < 120; i++) {
+        //int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
+        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+        for (int i = 0; i < 6; i++) {
+            if (valor_min [i] > sensores_frontais [i]) {
+                valor_min[i] = sensores_frontais[i];
+            } else if (valor_max [i] < sensores_frontais[i]) {
+                valor_max[i] = sensores_frontais [i];
+            }
+        }
+
+        /*
+        Após isso determinar o limiar de todos os sensores para que eles tenham os mesmos valores do AD. 
+        Para que todos tenham um limite inferior e superior igual.
+         */
+    }
+
+    calibrado = seta_calibracao();
+    return calibrado;
+}
+
+int seta_calibracao() {
+    //----> Calibração dos Sensores frontais <----\\
+
+    //função que seta o limiar dos sensores
+    for (int i = 0; i < 6; i++) {
+        if (valor_min_abs < valor_min [i]) {
+            valor_min_abs = valor_min [i];
+        } else if (valor_max_abs > valor_max [i]) {
+            valor_max_abs = valor_max [i];
+        }
+    }
+    //valores que os sensores não poderiam ultrapassar
+    //return (valor_min_abs, valor_max_abs);
+}
+
+int sensores() {
+    seta_calibracao(); //Estabelece os limites dos sensores
+
+    //int sensores_frontais[6] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
+    int sensores_frontais[6] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+    //======Estabelece o limiar da leitura dos sensores====//
+    //função de correção da calibração
+    for (int i = 0; i < 6; i++) {
+        if (valor_min_abs > sensores_frontais[i]) {
+            sensores_frontais[i] = valor_min_abs;
+        } else if (valor_max_abs < sensores_frontais[i]) {
+            sensores_frontais [i] = valor_max_abs;
+        }
+
+        sprintf(buffer, "%4d", sensores_frontais[i]); //Converte para string
+        UART_enviaString(buffer); //Envia para o computador
+        UART_enviaCaractere(0x20); //espaço
+    }
+    UART_enviaCaractere(0x0A); //pula linha
+
+
 }
