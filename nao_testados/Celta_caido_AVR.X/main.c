@@ -69,8 +69,8 @@ int denominador_esquerdo = 6;
 int soma_total = 0;
 int tempo_atual = 0;
 
-int valor_min [] = {1023, 1023, 1023, 1023, 1023, 1023};
-int valor_max [] = {0, 0, 0, 0, 0, 0};
+int valor_max [] = {1023, 1023, 1023, 1023, 1023, 1023};
+int valor_min [] = {0, 0, 0, 0, 0, 0};
 int valor_min_abs = 0, valor_max_abs = 1023;
 
 
@@ -127,10 +127,12 @@ int main(void) {
     int sensores_traseiros [] = {(tst_bit(PIND, sensor_tras_direito) >> sensor_tras_direito), (tst_bit(PIND, sensor_tras_esquerdo) >> sensor_tras_esquerdo)};
     int soma_tras = 0;
 
-    DDRD = 0b00101000; //PD5 e PD3 como saída e PD2, PD4, PD6 e PD7 como entrada 
-    PORTD = 0b00000000; //inicializados em nível baixo
-    DDRB = 0b00101111; //Habilita PB1, PB3, PB2, PB0 e PB5 como saída
+    DDRD =  0b00101000; //PD5 e PD3 como saída e PD2, PD4, PD6 e PD7 como entrada 
+    PORTD = 0b11010100; //inicializados em nível baixo e com pull aticadi nas saídas
+    DDRB =  0b00101111; //Habilita PB1, PB3, PB2, PB0 e PB5 como saída
     PORTB = 0b00000000; //PORTB inicializa desligado e saídas sem pull up
+    //DDRC =  0b00000000; //PORTC como entrada
+    //PORTC = 0b00111111; //PORTC com pull up (somente se o sensores tiverem um RC)
 
 
     //esquerdo pino 4 - PD2
@@ -231,8 +233,8 @@ int main(void) {
 
         switch (ejetor) {
             case 0:
-                if ((!(tst_bit(PORTD, sensor_de_curva) >> sensor_de_curva))
-                        || (!(tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)))//verifica se sos sensores estão em nível 0
+                if ((!(tst_bit(PIND, sensor_de_curva) >> sensor_de_curva))
+                        || (!(tst_bit(PIND, sensor_de_parada) >> sensor_de_parada)))//verifica se sos sensores estão em nível 0
                 {
                     timer2 = tempo_atual;
                     ejetor = 1;
@@ -247,8 +249,8 @@ int main(void) {
                 break;
 
             case 2:
-                if ((tst_bit(PORTD, sensor_de_curva) >> sensor_de_curva)
-                        && (tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)) {
+                if ((tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
+                        && (tst_bit(PIND, sensor_de_parada) >> sensor_de_parada)) {
                     timer2 = 0;
                     ejetor = 0;
                 }
@@ -410,8 +412,8 @@ void esquerda() {
 }*/
 
 void entrou_na_curva(int sensor, int sensor2, int valor_erro, int u_traseiro) {
-    if ((!tst_bit(PORTD, sensor_de_curva) >> sensor_de_curva)
-            && tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada) {
+    if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
+            && tst_bit(PIND, sensor_de_parada) >> sensor_de_parada) {
         switch (entrou) {
             case 0: //entrou na curva
                 u_curva = PID_Curva(valor_erro);
@@ -461,12 +463,12 @@ int PID_traseiro(int erro_traseiro) {
 }
 
 int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int u_traseir) {
-    if ((!tst_bit(PORTD, sensor_de_curva) >> sensor_de_curva)
-            && tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada) {
+    if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
+            && tst_bit(PIND, sensor_de_parada) >> sensor_de_parada) {
         contador++;
         entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, u_traseir); // Verifica se é uma curva
-    } else if ((!tst_bit(PORTD, sensor_de_curva) >> sensor_de_curva)
-            && (!tst_bit(PORTD, sensor_de_parada) >> sensor_de_parada)) //verifica se é crizamento
+    } else if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
+            && (!tst_bit(PIND, sensor_de_parada) >> sensor_de_parada)) //verifica se é crizamento
     {
         frente();
         setDuty_1(PWMA);
@@ -480,15 +482,14 @@ int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int u_trasei
 
 int calibra_sensores() {
     int calibrado = 0;
-    inicializa_ADC(); //Configura o ADC
     //=====Função que inicializa a calibração====//
     for (int i = 0; i < 120; i++) {
-        //int sensores_frontais[] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
-        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+        int sensores_frontais[] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)};
         for (int i = 0; i < 6; i++) {
-            if (valor_min [i] > sensores_frontais [i]) {
+            if (valor_min [i] < sensores_frontais [i]) {
                 valor_min[i] = sensores_frontais[i];
-            } else if (valor_max [i] < sensores_frontais[i]) {
+            } 
+            else if (valor_max [i] > sensores_frontais[i]) {
                 valor_max[i] = sensores_frontais [i];
             }
         }
@@ -510,7 +511,8 @@ int seta_calibracao() {
     for (int i = 0; i < 6; i++) {
         if (valor_min_abs < valor_min [i]) {
             valor_min_abs = valor_min [i];
-        } else if (valor_max_abs > valor_max [i]) {
+        }
+        else if (valor_max_abs > valor_max [i]) {
             valor_max_abs = valor_max [i];
         }
     }
@@ -521,14 +523,14 @@ int seta_calibracao() {
 int sensores() {
     seta_calibracao(); //Estabelece os limites dos sensores
 
-    //int sensores_frontais[6] = {le_ADC(0), le_ADC(1), le_ADC(2), le_ADC(3), le_ADC(4), le_ADC(6)};
-    int sensores_frontais[6] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)}; //Grogue antigo 
+    int sensores_frontais[6] = {le_ADC(3), le_ADC(2), le_ADC(1), le_ADC(0), le_ADC(7), le_ADC(6)};
     //======Estabelece o limiar da leitura dos sensores====//
     //função de correção da calibração
     for (int i = 0; i < 6; i++) {
-        if (valor_min_abs > sensores_frontais[i]) {
+        if (valor_min_abs < sensores_frontais[i]) {
             sensores_frontais[i] = valor_min_abs;
-        } else if (valor_max_abs < sensores_frontais[i]) {
+        } 
+        else if (valor_max_abs > sensores_frontais[i]) {
             sensores_frontais [i] = valor_max_abs;
         }
 
@@ -537,6 +539,4 @@ int sensores() {
         UART_enviaCaractere(0x20); //espaço
     }
     UART_enviaCaractere(0x0A); //pula linha
-
-
 }
