@@ -113,10 +113,10 @@ void esquerda();
 void direita();
 void motor_off();
 void freio();
-void entrou_na_curva(int sensor, int sensor2, int valor_erro, int u_traseiro);
+void entrou_na_curva(int valor_erro, int u_traseiro);
 int PID_Curva(int error_curva);
 int PID_traseiro(int erro_traseiro);
-int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int u_traseir);
+int parada(int value_erro, int u_traseir);
 int calibra_sensores();
 int seta_calibracao();
 int sensores();
@@ -189,11 +189,6 @@ int main(void) {
 
         u_tras = PID_traseiro(erro_tras);
 
-        if (delta_T >= TempoEspera) {
-
-            timer2 = 0;
-        }
-
 
         //região que seta os valores nos sensores frontais após a calibração
         sensores();
@@ -243,7 +238,7 @@ int main(void) {
 
             case 1:
                 if ((delta_T) > TempoEspera) {
-                    parada(sensor_de_curva, sensor_de_parada, erro, u_tras); // Verifica se é um marcador de parada
+                    parada(erro, u_tras); // Verifica se é um marcador de parada
                     ejetor = 2;
                 }
                 break;
@@ -261,14 +256,14 @@ int main(void) {
 
         if (erro < 0) //virar para a esquerda
         {
-            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro, u_tras);
+            entrou_na_curva(erro, u_tras);
             set_bit(PORTB, PB5); //liga o LED
             /*while (erro < 0) {
                 esquerda();
             }*/
 
         } else if (erro > 0) {
-            entrou_na_curva(sensor_de_curva, sensor_de_parada, erro, u_tras);
+            entrou_na_curva(erro, u_tras);
             set_bit(PORTB, PB5); //liga o LED
             /*while (erro > 0) {
                 direita();
@@ -411,7 +406,7 @@ void esquerda() {
     //calibração dos sensores frontais - seta o valor médio
 }*/
 
-void entrou_na_curva(int sensor, int sensor2, int valor_erro, int u_traseiro) {
+void entrou_na_curva(int valor_erro, int u_traseiro) {
     if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
             && tst_bit(PIND, sensor_de_parada) >> sensor_de_parada) {
         switch (entrou) {
@@ -462,11 +457,11 @@ int PID_traseiro(int erro_traseiro) {
     return Turn_traseiro; //retorna os valores após o PID
 }
 
-int parada(int sensor_esquerdo, int sensor_direito, int value_erro, int u_traseir) {
+int parada(int value_erro, int u_traseir) {
     if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
             && tst_bit(PIND, sensor_de_parada) >> sensor_de_parada) {
         contador++;
-        entrou_na_curva(sensor_esquerdo, sensor_direito, value_erro, u_traseir); // Verifica se é uma curva
+        entrou_na_curva(value_erro, u_traseir); // Verifica se é uma curva
     } else if ((!tst_bit(PIND, sensor_de_curva) >> sensor_de_curva)
             && (!tst_bit(PIND, sensor_de_parada) >> sensor_de_parada)) //verifica se é crizamento
     {
