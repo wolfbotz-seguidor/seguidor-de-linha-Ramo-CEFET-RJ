@@ -108,6 +108,11 @@ ISR(TIMER0_OVF_vect) {
     //}
 }//end TIMER_0
 
+ISR(ADC_vect)
+{
+    
+}
+
 /*============================================================================*/
 
 
@@ -141,10 +146,12 @@ void setup_Hardware(){
     UART_config(); //Inicializa a comunicação UART
     inicializa_ADC(); //Configura o ADC
     UART_enviaString(s); //Envia um texto para o computador
-
+    
     TCCR0B = 0b00000101; //TC0 com prescaler de 1024
     TCNT0 = 240; //Inicia a contagem em 100 para, no final, gerar 1ms
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
+    
+    ADCSRA |= (1<<ADIE);           //Habilita a interrupção do AD
     
     TCCR1A = 0xA2; //Configura operação em fast PWM, utilizando registradores OCR1x para comparação
 
@@ -180,8 +187,8 @@ void loop()//loop vazio
 }
 
 //=========Funções visíveis ao usuário===========//
-
-void entrou_na_curva(int valor_erro) {
+//Função só útil após o mapeamneto
+/*void entrou_na_curva(int valor_erro) {
     int u_curva = 0;
     static unsigned int PWMA_C = 0, PWMB_C = 0, entrou = 0; //PWM de curva com ajuste do PID;
     static unsigned int PWM_Curva = 350; //PWM ao entrar na curva
@@ -209,16 +216,17 @@ void entrou_na_curva(int valor_erro) {
                 break;
         }
     }
-}
+}*/
 
 
 void parada(int value_erro) {
 
     static char contador = 0, numParada = 4; // Borda   //contador - número de marcadores de curva;
+    static char parada = 0;
 
     if ((!tst_bit(leitura_curva, sensor_de_curva)) && tst_bit(leitura_parada, sensor_de_parada)) {
         contador++;
-        entrou_na_curva(value_erro); // Verifica se é uma curva
+        //entrou_na_curva(value_erro); // Verifica se é uma curva
     } 
     else if ((!tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada))) //verifica se é crizamento
     {
@@ -226,8 +234,12 @@ void parada(int value_erro) {
         setDuty_1(PWMA);
         setDuty_2(PWMB);
     }
+    
+    else if ((tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada)))  parada++;
 
-    while (contador == numParada) {
+    //leu o número total de marcações e leu as duas marcações de largada e chegada
+    while (contador == numParada && parada == 2)
+    {
         freio();
     }
 }
