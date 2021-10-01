@@ -10,15 +10,15 @@
 #include <avr/io.h> 	    //definições do componente especificado
 #include <avr/interrupt.h>
 
-void UART_config() 
+void UART_config(unsigned int ubrr) 
 {
-	//Baud Rate de 9600bps para um cristal de 16MHz (Datasheet)
-    UBRR0 = 103;    
+    UBRR0H = (unsigned char)(ubrr>>8);  //2 bits mais significativos de ubrr
+    UBRR0L = (unsigned char)ubrr;       //8 bits menos significativos de ubrr
    
     //Habilita a interrupção de recepção e os pinos TX e RX
-    UCSR0B =  (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0) ;
-	
-	//Configura a UART com 8 bits de dados
+    UCSR0B =  (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
+  
+  //Configura a UART com 8 bits de dados
     UCSR0C =  (1<<UCSZ01) | (1<<UCSZ00);  
 }
 
