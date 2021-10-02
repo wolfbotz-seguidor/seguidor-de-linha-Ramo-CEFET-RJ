@@ -6,18 +6,19 @@
  * Last update on July 7th of 2021 at 15:43
  */
 
-/*Pro Jeff ficar feliz, aqui jás um comentário :)*/
+/*Este código é de um robô seguidor de linha da equipe Wolfbotz.
+ * Aqui nós vemos o controle do robô bem como as tomadas de decisão de acordo com os padrões da pista*/
 
 /*Bibliotecas e frequência do uc*/
 #define F_CPU 16000000        //define a frequencia do uC para 16MHz
 #include <avr/io.h>           //Biblioteca geral dos AVR
 #include <avr/interrupt.h>    //Biblioteca de interrupção
-#include <stdio.h>            //Bilioteca do C
 #include <util/delay.h>       //Biblioteca geradora de atraso
+#include <stdio.h>            //Bilioteca do C
 #include "UART.h"             //Biblioteca da comunicação UART
 #include "ADC.h"              //Biblioteca do conversor AD
 #include "PWM_10_bits.h"      //Biblioteca de PWM fast mode de 10 bits
-#include "Driver_motor.h"     //Biblioteca das funções de controle dos motores
+#include "Driver_motor.h"     //Biblioteca das funções de controle dos motores  //usado para ponte H tb6612fng
 #include "PID.h"              //Biblioteca do controle PID
 /*============================================================*/
 
@@ -38,9 +39,8 @@
 /*==============================================================*/
 
 /*Variáveis globais*/
-char erro = 0; //Área PID
+char erro = 0;      //variável para cáculo do erro da direção do robô em cima da linha
 int PWMA = 0, PWMB = 0; // Modulação de largura de pulso enviada pelo PID
-//int *ptr = NULL;                                        //ponteiro utilizado para receber os valores dos sensores frontais
 unsigned char sensores_frontais[6];
 
 //Variáveis globais da calibração de sensores
@@ -48,22 +48,16 @@ unsigned char valor_max[6] = {0, 0, 0, 0, 0, 0};
 unsigned char valor_min[6] = {255, 255, 255, 255, 255, 255};
 unsigned char valor_max_abs = 255;
 unsigned char valor_min_abs = 0;
-//unsigned char valor_max_abs = 255;    //colocar assim quando testar no robô, não fica prático simular desta forma
-//unsigned char valor_min_abs = 0;
 
-//Variáveis globais do timer0
-unsigned char counter1 = 0, counter2 = 0;
+//variáveis de controle
+char f_parada= 0;   //variável que comanda quando o robô deve parar e não realizar mais sua rotina
+char f_calibra = 0; //variável que indica o fim da calibração dos esnores e inicio da estratégia
+char flag = 0;      //variável de controle para identificar o momento de parada
 
 //Variáveis globais da UART
 char buffer[5]; //String que armazena valores de entrada para serem printadas
 volatile char ch; //armazena o caractere lido
 volatile char flag_com = 0; //flag que indica se houve recepção de dado
-// Interrupção da UART
-
-/*======================================================*/
-
-/*Variáveis usadas no controle do loop*/
-//char flag0 = 1, flag1 = 0;
 
 /*tempo =65536 * Prescaler/Fosc = 65536 * 1024/16000000 = 4, 19s
  tempo = X_bit_timer * Prescaler/Fosc
@@ -72,21 +66,23 @@ volatile char flag_com = 0; //flag que indica se houve recepção de dado
 /*===========================================================================*/
 
 /*Protótipo das funções*/
-void ADC_maq();
-void INT_INIT();
+void ADC_maq();             //máquina de estado do conversor AD
+void INT_INIT();            //Inicializador das interrupções (Timer0)
 //void entrou_na_curva(char valor_erro);
-void parada();
-void calibra_sensores();
-void seta_calibracao();
-void sensores();
+void parada();              //Leitura dos sensores laterais
+void calibra_sensores();    //calibra sensores manualmente 
+void seta_calibracao();     //estabelece o limiar dos valores máximos e mínimos de leitura
+void sensores();            //caso um sensor passe do valor, o mesmo é corrigido
 void setup();
-void setup_Hardware();
+void setup_Hardware();      //define os registradores
 void setup_logica();
 void loop();
-void sentido_de_giro();
-void PWM_limit();
-void correcao_do_PWM();
-void estrategia();
+void sentido_de_giro();     //lê os sensores frontais e determina o sentido de giro dos motores com o PID
+void PWM_limit();           //limita o PWM em 1000 caso a variável passe de 1023 
+void estrategia();          //estrategia do robô
+void calibration();         //contêm toda a rotina de calibração
+void fim_de_pista();        //verifica se é o fim da psita
+void f_timers (void);       //função de temporização das rotinas
 /*===========================================================================*/
 
 
@@ -102,14 +98,14 @@ ISR(TIMER0_OVF_vect)
 {
     TCNT0 = 56; //Recarrega o Timer 0 para que a contagem seja 100us novamente
     
-    estrategia();
+    f_timers(); //função de temporização das rotinas
     
 }//end TIMER_0
 
 ISR(ADC_vect)
 {
-    ADC_maq();
-}
+    ADC_maq();  //máquina de estado do conversor AD
+}//end ADC_int
 
 /*============================================================================*/
 
@@ -125,18 +121,19 @@ int main(void)
 
 //===Funções não visíveis ao usuário======//
 
-void setup() {
+void setup() 
+{
 
-    setup_Hardware();
-    ADC_init();
-    sei(); //Habilita as interrupções
-    setup_logica();
-    INT_INIT();    //inicializo interrupção do TIMER0 após a calibração
+    setup_Hardware();   //setup das IO's e das interrupções
+    calibration();      //rotina de calibração
+    setup_logica();     //definição das variáveis lógicas(vazio por enquanto)
+    sei();              //Habilita as interrupções
 
-}
+}//end setup
 
 
-void setup_Hardware(){
+void setup_Hardware()
+{
     MCUCR &= 0xef;      //habilita pull up quando configurado e desabilita algumas configurações prévias do MCU
 
     DDRD = 0b01111010; //PD3 - PD6 definidos como saída, PD7 como entrada, PD0 como entrada(RX) e PD1 como saída(TX)
@@ -145,20 +142,25 @@ void setup_Hardware(){
     PORTB = 0b00000001; //PORTB inicializa desligado e pull up no PB0
     DDRC = 0b00000000; //PORTC como entrada
     PORTC = 0b00001111; //PC3 - PC0 com pull up (colocar resistor de pull up nos pinos A6 e A7)
-
-    //esquerdo pino 4 - PD2
-    UART_config(16); //Inicializa a comunicação UART com 57.6kbps
-    
     TCCR1A = 0xA2; //Configura operação em fast PWM, utilizando registradores OCR1x para comparação
 
-    setFreq(1); //Seleciona opção para frequência
-    //16kHz de PWM
-}
+    //esquerdo pino 4 - PD2
+    //UART_config(16); //Inicializa a comunicação UART com 57.6kbps
+    
+    setFreq(4); //Seleciona opção para frequência
+    //62,5Hz de PWM
+    
+    ADC_init(); //Inicializa o AD
+    INT_INIT(); //Inicializa o Timer0
 
-void setup_logica(){
-    //----> Calibração dos Sensores frontais <----//
+    
+}//end setup_hardware
+
+void calibration()
+{
+     //----> Calibração dos Sensores frontais <----//
     set_bit(PORTB, led); //subrotina de acender e apagar o LED 13
-    ADC_maq();
+    ADC_maq();  //inicializa a conversão do AD
     calibra_sensores(); //calibração dos sensores //A calibração vai conseguir acompanhar o AD
                                                   //ou pode ser que o vetor não seja preenchido a tempo?
                                                   //É necessário colocar um contador
@@ -177,13 +179,16 @@ void setup_logica(){
     _delay_ms(500);
     clr_bit(PORTB, led);
     _delay_ms(2000);
+    f_calibra = 1;  //flag para indicar fim da calibração
+}
+void setup_logica(){
+   
     
     
 }
 
 void INT_INIT()
-{
-        
+{    //fórmula nas primeiras linhas do código
     TCCR0B = 0b00000010; //TC0 com prescaler de 8
     TCNT0 = 56; //Inicia a contagem em 56 para, no final, gerar 100us
     TIMSK0 = 0b00000001; //habilita a interrupção do TC0
@@ -191,28 +196,18 @@ void INT_INIT()
 
 void loop()//loop vazio
 {
-    /*unsigned char u_curva = 0;
-    static unsigned int PWMA_C = 0, PWMB_C = 0; //PWM de curva com ajuste do PID;
-    static unsigned int PWM_Curva = 350; //PWM ao entrar na curva
-    if(flag0)
-    {
-        correcao_do_PWM();
-        flag0 = 0x00;
-    }
     
-    if(flag1)
-    {
-       u_curva = PID(erro);
-       PWMA_C = PWM_Curva - u_curva;
-       PWMB_C = PWM_Curva + u_curva;
-       frente();
-       setDuty_1(PWMA_C);
-       setDuty_2(PWMB_C);
-       flag1 = 0x00;
-    }*/
 }
 
-void ADC_maq () {
+void ADC_maq () 
+{
+    //inicializo no setup na função calibration e em seguida toda
+    //vez que ocorre uma converção a interrupção do AD ocorre
+    //e então esta função é chamada pelo vetor de interrupção
+    //do AD, obtendo os dados da conversão em "paralelo" à rotina
+    
+    //Leio primeiro o default que seria o primeiro canal
+    //e em seguida faço uma lógica circular de leitura dos canais
     
     static unsigned char estado = 10;
     
@@ -261,7 +256,7 @@ void ADC_maq () {
             break; 
     }
     
-}
+}//end ADC_maq
 
 //=========Funções visíveis ao usuário===========//
 //Função só útil após o mapeamneto
@@ -296,30 +291,30 @@ void ADC_maq () {
 }*/
 
 void parada() 
-{
-
-    static char contador = 0, numcurva = 10; // Borda   //contador - número de marcadores de curva;
-    static char parada = 0;
-
-    if ((!tst_bit(leitura_curva, sensor_de_curva)) && tst_bit(leitura_parada, sensor_de_parada)) 
+{   
+    //leitura de marcador de curva
+    /*static char contador = 0, num_curva = 6;
+    if ((!tst_bit(leitura_curva, sensor_de_curva)) && (tst_bit(leitura_parada, sensor_de_parada)))
     {
         contador++;
-        //entrou_na_curva(value_erro); // Verifica se é uma curva
-    } 
-    else if ((!tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada))) //verifica se é crizamento
+    }*/
+    
+    //cruzamento
+    //branco = 0, preto = 1
+    if ((!tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada))) //verifica se é crizamento
     {
-        frente();
+        /*frente();
         setDuty_1(PWMA);
-        setDuty_2(PWMB);
+        setDuty_2(PWMB);*/
+        flag = 0;
     }
     
-    else if ((tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada)))  parada++;
-
-    //leu o número total de marcações e leu as duas marcações de largada e chegada
-    while (contador == numcurva && parada == 2)
+    //leitura de marcador de parada
+    else if ((tst_bit(leitura_curva, sensor_de_curva)) && (!tst_bit(leitura_parada, sensor_de_parada)))
     {
-        freio();
+        flag = 1;
     }
+
 }
 
 void calibra_sensores() 
@@ -351,7 +346,7 @@ void seta_calibracao() {
     //função que seta o limiar dos sensores
     //Este é o algoritmo a ser usado no robô. Desmcomente antes de compilar e comente o outro.
     for (int i = 0; i < 6; i++) {
-        if (valor_min [i] > valor_min_abs && valor_min[i] !=0 ) //esse !0 foi colocado pois estava havendo um bug ao simular
+        if (valor_min [i] > valor_min_abs)// && valor_min[i] !=0 ) //esse !0 foi colocado pois estava havendo um bug ao simular
         {
             valor_min_abs = valor_min [i];
         } 
@@ -382,7 +377,9 @@ void sensores() {
 void sentido_de_giro()
 {
     //-----> Área do senstido de giro
-    unsigned char u_curva = 0;
+    unsigned char u = 0; //valor de retorno do PID
+    static unsigned int PWMR = 400; // valor da força do motor em linha reta
+    unsigned char u_curva = 0; //valor de retorno do PID numa curva
     static unsigned int PWMA_C = 0, PWMB_C = 0; //PWM de curva com ajuste do PID;
     static unsigned int PWM_Curva = 350; //PWM ao entrar na curva
 
@@ -391,20 +388,29 @@ void sentido_de_giro()
         //necessário teste com monitor serial
         //estudar a melhor quantidade de sensores e seu espaçamento
     {
-        //colocar  PID no loop usando flags
         u_curva = PID(erro);
         PWMA_C = PWM_Curva - u_curva;
         PWMB_C = PWM_Curva + u_curva;
         frente();
+        PWM_limit();
         setDuty_1(PWMA_C);
         setDuty_2(PWMB_C);
         //flag1 = 1;
     } //em cima da linha
         
     else
-    { //pra frente - reta
+    { 
+        //pra frente - reta
         //flag1 = 0x00;
+        //--------------->AREA DO PID<---------------
+
+        u = PID(erro);
+
+        PWMA = PWMR - u;
+        PWMB = PWMR + u;
+
         frente();
+        PWM_limit();
         setDuty_1(PWMA);
         setDuty_2(PWMB);
     }
@@ -424,13 +430,11 @@ void PWM_limit() {
     }
 }
 
-void correcao_do_PWM() {
-
+void calculo_do_erro()
+{
     unsigned int soma_direito = 0, denominador_direito = 6, denominador_esquerdo = 6;
     int soma_esquerdo = 0;
     unsigned char soma_total = 0;   //caso aumente o peso da média_ponderada, tomar cuidado com a variável char
-    static unsigned int PWMR = 400; // valor da força do motor em linha reta
-    unsigned char u = 0; //valor de retorno do PID
     
     static char peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 2000
     //os pesos precisarão ser corrigidos pois os sensores do Van Grogue estão um pouco assimétricos
@@ -442,38 +446,66 @@ void correcao_do_PWM() {
     }
 
     soma_total = (soma_esquerdo + soma_direito) / (denominador_esquerdo + denominador_direito);
-
-    erro = 0 - soma_total;   //valor esperado(estar sempre em cima da linha) - valor medido
-
-    /*sprintf(buffer, "Erro = %5d\n", erro); //Converte para string
-    UART_enviaString(buffer); //Envia para o computador
-    UART_enviaHex(erro);
-    UART_enviaCaractere(0x0D); //pula linha*/   /*usada somente para mapear*/
-
-    //--------------->AREA DO PID<---------------
-
-    u = PID(erro);
-
-    PWMA = PWMR - u;
-    PWMB = PWMR + u;
-
-    frente();
-    setDuty_1(PWMA);
-    setDuty_2(PWMB);
     
-}//fim do programa
+    erro = 0 - soma_total;   //valor esperado(estar sempre em cima da linha) - valor medido
+}
 
 void estrategia()
 {
-    counter1++; //incrementa a cada 100us
-    parada();   //verifica se é parada a cada 100us
-    if(counter1 == 5)   //em 500us
+    
+    if (!f_parada)  //se f_parada dor 0... 
     {
-        sensores();         //seta o limiar da leitura dos sensores
-        //flag0 = 1;
-        correcao_do_PWM();  //Corrige o PWM através do PID
-        PWM_limit();        //Verifica se houve estouro no PWM por parte do PID
-        sentido_de_giro();  //Verifica se precisa fazer uma curva
-        counter1 = 0x00;
-    }   
+        sensores();             //seta o limiar da leitura dos sensores
+        calculo_do_erro();      //faz a média ponderada e calcula o erro
+        sentido_de_giro();      //Verifica se precisa fazer uma curva e o cálculo do PID
+    }
+        
 }
+
+void fim_de_pista()
+{
+    static char parada = 0;
+    
+    if(flag)
+    {
+       parada++;
+       flag = 0;
+    }
+    
+    if(parada > 1)  //dois marcadores de parada
+    {
+        freio();
+        f_parada = 1;
+    }
+}
+
+void f_timers (void) {
+
+    static unsigned char c_timer1 = 0, c_timer2 = 0;
+    if(f_calibra)
+    {
+        if (c_timer1 < 0)
+        {
+            c_timer1++;
+        }
+        
+        else    //a cada 100us
+        {
+            parada();
+            fim_de_pista();         //Verifica se é o fim da pista
+            c_timer1=0;
+        }
+
+
+        if (c_timer2 < 4)
+        {
+            c_timer2++;
+        }
+        
+        else    //a cada 400us
+        {
+            estrategia();
+            c_timer2=0;
+        }
+    }
+}//fim do programa
