@@ -159,7 +159,7 @@ void setup_Hardware()
 void calibration()
 {
      //----> Calibração dos Sensores frontais <----//
-    set_bit(PORTB, led); //subrotina de acender e apagar o LED 13
+    set_bit(PORTB, led);
     ADC_maq();  //inicializa a conversão do AD
     calibra_sensores(); //calibração dos sensores //A calibração vai conseguir acompanhar o AD
                                                   //ou pode ser que o vetor não seja preenchido a tempo?
@@ -167,7 +167,6 @@ void calibration()
                                                   //para depois chamar a função de calibração?
     
     seta_calibracao(); //estabelece o limiar dos sensores através dos valores da função de cima
-    sensores(); //determina o limiar dos sensores e printa seus valores na tela
     
     clr_bit(PORTB, led);
     _delay_ms(500);
@@ -181,6 +180,7 @@ void calibration()
     _delay_ms(2000);
     f_calibra = 1;  //flag para indicar fim da calibração
 }
+
 void setup_logica(){
    
     
@@ -383,7 +383,7 @@ void sentido_de_giro()
     static unsigned int PWMA_C = 0, PWMB_C = 0; //PWM de curva com ajuste do PID;
     static unsigned int PWM_Curva = 350; //PWM ao entrar na curva
 
-    if ((sensores_frontais[0] < 200 && sensores_frontais[5] > 900) || (sensores_frontais[0]  > 900 && sensores_frontais[5] < 200))    
+    if ((sensores_frontais[0] < 50 && sensores_frontais[5] > 225) || (sensores_frontais[0]  > 225 && sensores_frontais[5] < 50))    
         //se o primeiro sensor ou o último sensor estiverem lendo branco...
         //necessário teste com monitor serial
         //estudar a melhor quantidade de sensores e seu espaçamento
@@ -481,23 +481,15 @@ void fim_de_pista()
 
 void f_timers (void) {
 
-    static unsigned char c_timer1 = 0, c_timer2 = 0;
+    static unsigned char c_timer2 = 0; //c_timer1 = 0, 
     if(f_calibra)
     {
-        if (c_timer1 < 0)
-        {
-            c_timer1++;
-        }
         
-        else    //a cada 100us
-        {
-            parada();
-            fim_de_pista();         //Verifica se é o fim da pista
-            c_timer1=0;
-        }
-
-
-        if (c_timer2 < 4)
+        //funções a cada 100us
+        parada();
+        fim_de_pista();         //Verifica se é o fim da pista
+        
+        if (c_timer2 < 3)
         {
             c_timer2++;
         }
