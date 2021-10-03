@@ -434,7 +434,7 @@ void calculo_do_erro()
 {
     unsigned int soma_direito = 0, denominador_direito = 6, denominador_esquerdo = 6;
     int soma_esquerdo = 0;
-    unsigned char soma_total = 0;   //caso aumente o peso da média_ponderada, tomar cuidado com a variável char
+    char soma_total = 0;   //caso aumente o peso da média_ponderada, tomar cuidado com a variável char
     
     static char peso [] = {-3, -2, -1, 1, 2, 3}; //utilizando um prescale de 2000
     //os pesos precisarão ser corrigidos pois os sensores do Van Grogue estão um pouco assimétricos
