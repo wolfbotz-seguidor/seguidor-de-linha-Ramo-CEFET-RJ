@@ -7,9 +7,6 @@
  *              STOP BITS   -   1 
  */
 
-#include <avr/io.h> 	    //definições do componente especificado
-#include <avr/interrupt.h>
-
 void UART_config(unsigned int ubrr) 
 {
     UBRR0H = (unsigned char)(ubrr>>8);  //2 bits mais significativos de ubrr
