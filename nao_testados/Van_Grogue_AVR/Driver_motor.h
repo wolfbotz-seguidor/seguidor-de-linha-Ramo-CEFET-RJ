@@ -1,9 +1,3 @@
-#define set_bit(y,bit) (y|=(1<<bit)) //coloca em 1 o bit x da variável Y
-#define clr_bit(y,bit) (y&=~(1<<bit)) //coloca em 0 o bit x da variável Y
-#define cpl_bit(y,bit) (y^=(1<<bit)) //troca o estado lógico do bit x da variável Y
-#define tst_bit(y,bit) (y&(1<<bit)) //retorna 0 ou 1 conforme leitura do bit
-
-
 //Lado direito
 #define AIN2 PD6
 #define AIN1 PD5 // Quando em HIGH, roda direita anda para frente 
@@ -12,12 +6,48 @@
 #define BIN1 PD4 
 #define BIN2 PD3 // Quando em HIGH, roda esquerda anda para frente
 
-void frente() {
+extern void setDuty_1(int duty);
+extern void setDuty_2(int duty);
+
+void frente() 
+{
 
     set_bit(PORTD, AIN1); //frente direita
     clr_bit(PORTD, AIN2);
     set_bit(PORTD, BIN2); //frente esquerda
     clr_bit(PORTD, BIN1);
+}
+
+void direita_frente()  //direita sentido direto
+{
+    set_bit(PORTD, AIN1); //frente direita
+    clr_bit(PORTD, AIN2);
+    clr_bit(PORTD, BIN2);
+    clr_bit(PORTD, BIN1);
+}
+
+void direita_tras()  //direita sentido reverso
+{
+    clr_bit(PORTD, AIN1); //frente direita
+    set_bit(PORTD, AIN2);
+    clr_bit(PORTD, BIN2);
+    clr_bit(PORTD, BIN1);
+}
+
+void esquerda_frente()  //esquerda sentido direto
+{
+    clr_bit(PORTD, AIN1); 
+    clr_bit(PORTD, AIN2);
+    set_bit(PORTD, BIN2);//frente esquerda
+    clr_bit(PORTD, BIN1);
+}
+
+void esquerda_tras()  //esquerda sentido reverso
+{
+    clr_bit(PORTD, AIN1); 
+    clr_bit(PORTD, AIN2);
+    clr_bit(PORTD, BIN2);//frente esquerda
+    set_bit(PORTD, BIN1);
 }
 
 void tras() {
@@ -61,7 +91,7 @@ void freio() {
 
     _delay_ms(60000);*/
     
-    motor_off();        //desliga os motores para deoxar o próprio atrito frear o robô
+    motor_off();        //desliga os motores para deoxar o prï¿½prio atrito frear o robï¿½
     setDuty_1(0);
     setDuty_2(0);
 }
