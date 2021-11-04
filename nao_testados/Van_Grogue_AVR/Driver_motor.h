@@ -26,6 +26,22 @@ void direita_frente()  //direita sentido direto
     clr_bit(PORTD, BIN1);
 }
 
+void giro_esquerda()
+{
+    set_bit(PORTD, AIN1); //frente direita
+    clr_bit(PORTD, AIN2);
+    clr_bit(PORTD, BIN2);
+    set_bit(PORTD, BIN1);
+}
+
+void giro_direita()
+{
+    clr_bit(PORTD, AIN1); //frente direita
+    set_bit(PORTD, AIN2);
+    set_bit(PORTD, BIN2);
+    clr_bit(PORTD, BIN1);
+}
+
 void direita_tras()  //direita sentido reverso
 {
     clr_bit(PORTD, AIN1); //frente direita
@@ -58,21 +74,6 @@ void tras() {
 
 }
 
-void giro_direita(void)
-{
-    set_bit(PORTD, AIN1); //frente direita
-    clr_bit(PORTD, AIN2);
-    clr_bit(PORTD, BIN2); //frente esquerda
-    set_bit(PORTD, BIN1);
-}
-
-void giro_esquerda(void)
-{
-    clr_bit(PORTD, AIN1); //frente direita
-    set_bit(PORTD, AIN2);
-    set_bit(PORTD, BIN2); //frente esquerda
-    clr_bit(PORTD, BIN1);
-}
 void motor_off() {
     clr_bit(PORTD, AIN1);
     clr_bit(PORTD, AIN2);
