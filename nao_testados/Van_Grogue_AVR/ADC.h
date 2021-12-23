@@ -32,7 +32,8 @@ void ADC_conv_ch (unsigned char canal) {
             
 }
 
-unsigned char ADC_ler () {
+unsigned char ADC_ler ()
+{
     
     unsigned char dado = ADCH;
     return dado;
