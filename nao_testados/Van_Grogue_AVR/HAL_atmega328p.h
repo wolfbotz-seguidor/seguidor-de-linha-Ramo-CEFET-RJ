@@ -23,6 +23,13 @@ extern void ADC_init();
 void INT_INIT();
 extern void UART_config(unsigned int ubrr);
 
+/*tempo =65536 * Prescaler/Fosc = 65536 * 1024/16000000 = 4, 19s
+ tempo = X_bit_timer * Prescaler/Fosc
+ Valor inicial de contagem = 256 - tempo_desejado*Fosc/Prescaler = 256 - 0,001*16000000/1024 = 255
+ Valor inicial de contagem = X_bit_timer - tempo_desejado*Fosc/Prescaler */
+/*===========================================================================*/
+
+
 void setup_Hardware()
 {
     MCUCR &= 0xef;      //habilita pull up quando configurado e desabilita algumas configurações prévias do MCU
@@ -45,7 +52,6 @@ void setup_Hardware()
     ADC_init(); //Inicializa o AD
     INT_INIT(); //Inicializa o Timer0
 
-    
 }//end setup_hardware
 
 void INT_INIT()
