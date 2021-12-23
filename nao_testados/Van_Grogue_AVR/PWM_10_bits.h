@@ -1,5 +1,8 @@
 //PWM em fast mode de 10 bits do Timer 1 do atemga328p
 
+/*Variáveis externas*/
+extern unsigned int PWMA, PWMB;
+
 void setDuty_2(int duty) //MotorB
 {
 
@@ -44,3 +47,39 @@ void setFreq(char option)
      */
      
 } //end setFrequency
+
+
+void PWM_limit()
+{
+    //------> Limitando PWM
+    static int ExcessoB = 0, ExcessoA = 0;
+    
+    if (PWMA > 1023)
+    {
+      ExcessoB = (PWMA - 1023);
+      PWMA = 1023;
+      PWMB -= ExcessoB;
+    }
+
+    else if (PWMB > 1023)
+    {
+      ExcessoA = (PWMB - 1023);
+      PWMB = 1023;
+      PWMA -= ExcessoA;
+    }
+
+    if (PWMA < 0)
+    {
+      ExcessoB = (PWMA*(-1) * 2);
+      PWMA += (PWMA*(-1)*2);
+      PWMB += ExcessoB;
+    }
+
+    else if (PWMB < 0)
+    {
+      ExcessoA = (PWMB*(-1) * 2);
+      PWMB += (PWMB*(-1)*2);
+      PWMA += ExcessoA;
+    }        
+
+}
