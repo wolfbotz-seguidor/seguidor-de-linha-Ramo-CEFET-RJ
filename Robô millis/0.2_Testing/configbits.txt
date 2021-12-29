@@ -1,0 +1,15 @@
+// ATmega328P Configuration Bit Settings
+
+// 'C' source line config statements
+
+#include <avr/io.h>
+
+
+
+FUSES = {
+	.low = 0xFF,    //external clock 8MHZ - XXMHZ (better option)
+	.high = 0x91,   //debugWire Enable, Enable SPI, Enable EEPROM preserbing, BOOTSZ0 e BOOTSZ1 enable
+	.extended = 0xFF, //brown out detection disabled
+};
+
+LOCKBITS = 0xFF; // {LB=NO_LOCK, BLB0=NO_LOCK, BLB1=NO_LOCK}
