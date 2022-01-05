@@ -1,8 +1,6 @@
 #include "dados.h"
 //#include "sensor_logic.h"
 
-
-
 /*Variáveis globais desta bilioteca*/
 unsigned int matriz_telemetria [100][3];   //matriz de colhimento de dados
 unsigned int matriz_pista      [30][3];    //colhe somente distancia, tempo e raio
@@ -14,7 +12,7 @@ char buffer[5]; //String que armazena valores de entrada para serem printadas
 unsigned int dados_valor_pwm(void)
 {
     extern unsigned int PWMA, PWMB;
-    return ((PWMA + PWMB) / 2);
+    return ((PWMA + PWMB) / 2);     //retorna a média dos PWMs dos dois motores
 }
 
 unsigned int dados_distancia_calculo(void)
