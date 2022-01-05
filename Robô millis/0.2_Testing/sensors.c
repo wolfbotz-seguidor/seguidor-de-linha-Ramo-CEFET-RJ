@@ -4,6 +4,10 @@
 #include "PWM.h"
 #include "motores.h"
 
+#define PID_X       //ao comentar, o PID rotacional é desabilitado
+
+#define atmega328p
+
 unsigned char sensores_de_tensao [2];
 unsigned char v_bat; //tensão na bateria
 unsigned char SW;    //switch de estratégias
@@ -26,14 +30,15 @@ void sensors_ADC_maq () //leitura de tensão da bateria e do switch de estratégia
         case 0:
             estado = 1;
             sensores_de_tensao[0] = ADC_ler();
-            SW = sensores_de_tensao[0];
+            SW = sensores_de_tensao[0];     //leitura do switch para estratégia
+            //o Switch está sendo utilizado em uma porta AD por falta de entrada digital
             ADC_conv_ch(7);
             break;
             
         case 1:
             estado = 0;
             sensores_de_tensao[1] = ADC_ler();
-            v_bat = sensores_de_tensao[1];
+            v_bat = sensores_de_tensao[1];  //sensor de tensão de bateria
             ADC_conv_ch(6);
             break;
             
@@ -110,21 +115,25 @@ void sensors_sentido_de_giro()
     static unsigned int PWM_general = 0;
     static int  u_X = 0;                    //resultado do PID translacional
     
-    static int erro_enc = 0, erroX = 0, speedX;     //speedX é o setpoint da vel. desejada
+    static int delta_enc = 0, erroX = 0, speedX;     //speedX é o setpoint da vel. desejada
     extern char pulse_numberL, pulse_numberR;            //numero de pulsos do dois encoders
-    
-    erro_enc = pulse_numberR + pulse_numberL;            //variação entro os dois enconders
         
     static int erro_sensores = 0, erroW = 0, speedW = 0;  //speeW é o setpoint do PID rotacional.
     speedX = 100;   //velocidade/pwm desejado
     
+    #ifdef atmega328p
     sensores_frontais = PINC & 0b00011111;   //apago somente os 2 bits mais significativos
                                             //para ler os 5 LSBs
+    #endif
+    
     sensors_leitura_de_pista(&erro_sensores, &speedW, &speedX, &PWM_general, &PWMR, &PWM_Curva);
     
-    erroX = speedX - erro_enc;
-    erroW = speedW - erro_sensores;
+    #ifdef PID_X                //caso não seja definido, u_X será sempre 0
+    delta_enc = pulse_numberR + pulse_numberL;            //variação entro os dois enconders
+    erroX = speedX - delta_enc;
     u_X = PID_encoder(erroX);
+    #endif
+    erroW = speedW - erro_sensores;
     u_W = PID(erroW);
     PWMA = PWM_general + u_W + u_X;
     PWMB = PWM_general - u_W + u_X;
@@ -132,10 +141,16 @@ void sensors_sentido_de_giro()
     PWM_setDuty_1(PWMA);
     PWM_setDuty_2(PWMB);
 
+    //Há dois PIDs presentes, o translacional e o rotacional,
+    //ambos os setpoints variam dependendo da situação que o robô se enconrtra
+    //são necessários testes para saber em determinadas situações qual deve ser o setpoint de cada PID
+    
 }
 
 void sensors_leitura_de_pista(int *erro_sensores, int *speedW, int *speedX, unsigned int *PWM_general, unsigned int *PWMR, unsigned int *PWM_Curva)
 {
+    //foi feito um switch case com base em alguns casos que os sensores frontais poderiam se encontrar
+    //os valores de leituras do vetor de sensores foi convertido em digital, mais tarde será feito uma imagem mostrando os caso de forma mais visível
     switch (sensores_frontais)
     {
         case 0 :    //cruzamento
@@ -159,7 +174,9 @@ void sensors_leitura_de_pista(int *erro_sensores, int *speedW, int *speedX, unsi
             
         case 14 :                       //volta pra pista, gira em torno do próprio eixo
             *erro_sensores = 8;
+            #ifdef PID_X 
             *speedX = 0;
+            #endif
             *PWM_general = *PWMR;
             motores_giro_direita();
             break;
@@ -198,14 +215,18 @@ void sensors_leitura_de_pista(int *erro_sensores, int *speedW, int *speedX, unsi
             
         case 28 :
             *erro_sensores = -6;
+            #ifdef PID_X 
             *speedX = 0;
+            #endif
             *PWM_general = *PWM_Curva;
             motores_frente();
             break;
             
         case 30 :                   //volta pra pista, gira em torno do próprio eixo
             *erro_sensores = -8;
+            #ifdef PID_X 
             *speedX = 0;
+            #endif
             *PWM_general = *PWMR; 
             motores_giro_esquerda();
             break;      
