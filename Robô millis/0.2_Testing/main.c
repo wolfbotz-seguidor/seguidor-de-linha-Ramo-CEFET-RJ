@@ -9,6 +9,8 @@
 /*Este código é de um robô seguidor de linha da equipe Wolfbotz.
  * Aqui nós vemos o controle do robô bem como as tomadas de decisão de acordo com os padrões da pista*/
 #include "main.h"
+#define atmega328p
+
 
 /*Variáveis globais*/
 unsigned int PWMA = 0, PWMB = 0; // Modulação de largura de pulso enviada pelo PID
@@ -27,16 +29,16 @@ unsigned char pulse_numberR = 0, pulse_numberL = 0; //variáveis para contagem do
 volatile char ch; //armazena o caractere lido
 volatile char flag_com = 0; //flag que indica se houve recepção de dado*/
 
-unsigned char max_timer1, max_timer2, max_timer3_ms, max_timer_3, max_timer4, max_timer5;   
+unsigned char max_timer1, max_timer2, max_timer3_ms, max_timer_3, max_timer4, max_timer5;   //variáveis de controle de temporização
 
-
+#ifdef atmega328p
 /*Interrupções*/
 ISR(USART_RX_vect) {
     ch = UDR0; //Faz a leitura do buffer da serial
 
     UART_enviaCaractere(ch); //Envia o caractere lido para o computador
     flag_com = 1; //Aciona o flag de comunicação
-}
+}//end UART_RX_Vect
 
 ISR(TIMER0_OVF_vect) 
 {
@@ -54,13 +56,13 @@ ISR(ADC_vect)
 ISR(INT0_vect)
 {
     count_pulsesD();
-}
+}//end INT0
 
 ISR(PCINT0_vect)
 {
     count_pulsesE();
-}
-
+}//end PCINT0
+#endif
 
 /*Função principal*/
 int main(void) 
@@ -157,14 +159,14 @@ void setup()
 void setup_logica() /*Função que passa ponteiros para funções como parâm*/
 {
     max_timer1 = 2, max_timer2 = 3, max_timer3_ms = 100, max_timer_3 = 50, 
-    max_timer4 = 10, max_timer5 = 10;   
+    max_timer4 = 10, max_timer5 = 10;   //bases de tempo ciadas com uma base mínima de 100us
 }
 
 
 void loop()//loop vazio
 {
 
-}
+}//end loop
 
 void estrategia()
 {
@@ -175,15 +177,15 @@ void estrategia()
         sensors_sentido_de_giro();      //Verifica se precisa fazer uma curva e o cálculo do PID
         //sensors_volta_pra_pista();      //corrige o robô caso saia da linha
     } 
-}
+}//end estrategia
 
 
 void parada() 
 {     
 
-    sensors_le_marcadores();
+    sensors_le_marcadores();//faz a leitura dos sensores laterais e verifica se é uma curva, cruzamento ou parada
 
-}
+}//end parada
 
 
 void fim_de_pista()
@@ -204,7 +206,7 @@ void fim_de_pista()
         parada = 0;
     }
     
-}
+}//end fim_de_pista
 
 /*funções do encoder*/
 
@@ -229,9 +231,7 @@ void count_pulsesD()
     if (!direction_m) pulse_numberR++; //sentido horário
     else pulse_numberR--;
 
-
-
-}
+}//end count_pulsesD
 
 void count_pulsesE()
 {
@@ -255,31 +255,31 @@ void count_pulsesE()
     if (!direction_m) pulse_numberR++; //sentido horário
     else pulse_numberL--; //sentido anti-horário
 
-
-}
-
+}//end count_PulsesE
 
 
-void millis(void)
+
+void millis(void)//cronômetro de base de 1ms
 {
     //static unsigned int f_read = 0;
     
     millisegundos++;
-}
+}//end millis
 
 void f_timer1(void)
 {
     parada();
     fim_de_pista();         //Verifica se é o fim da pista
-}
+}//end f_timer1
 
 void f_timer2(void)
 {
     estrategia();
-}
+}//end f_timer2
 
 void f_timer3(void)     //10ms
 {   
+    //ftimer3 é uma função com uma base de tempo de ms dentro dela e que novas funções são chamadas numa escala de ms
     static unsigned char c_timer1 = 0;
     
     if(c_timer1 < max_timer_3)  //500ms = 0,5s
@@ -292,13 +292,13 @@ void f_timer3(void)     //10ms
         //dados_telemetria();
         c_timer1 = 1;
     }
-}
+}//end f_timer3
 
 void f_timer4(void)
 {
     millis();   //função chamada a cada 1ms 
 
-}
+}//end f_timer4
 
 void f_timer5(void)
 {
@@ -306,4 +306,6 @@ void f_timer5(void)
     {
         //dados_coleta();
     }
-}
+}//end f_timer5
+
+/*-------------------------FIM DO PROGRAMA-----------------*/
