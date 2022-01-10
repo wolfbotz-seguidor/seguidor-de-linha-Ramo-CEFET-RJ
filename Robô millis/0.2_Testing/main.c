@@ -8,71 +8,98 @@
 
 /*Este código é de um robô seguidor de linha da equipe Wolfbotz.
  * Aqui nós vemos o controle do robô bem como as tomadas de decisão de acordo com os padrões da pista*/
+
+// =============================================================================================
+// Pré compilacao
+
 #include "main.h"
+
 #define atmega328p
 
-
-/*Variáveis globais*/
+// =============================================================================================
+// Variáveis globais
 unsigned int PWMA = 0, PWMB = 0; // Modulação de largura de pulso enviada pelo PID
-//variáveis de controle
-bool f_parada= 0;       //variável que comanda quando o robô deve parar e não realizar mais sua rotina
-bool flag = 0;          //variável de controle para identificar o momento de parada
-bool flag_curva = 0;    //cronometragem entre as retas e as cruvas
-bool flag_parada = 0;   //inicia e encerra a cronometragem da pista
-bool f_stop = 0;              //encerra a rotina de dados
-unsigned int millisegundos = 0;        //millisegundos
 
-/*Variáveis do encoder*/
+// =============================================================================================
+// Variáveis de controle
+bool f_parada= 0;       // Variável que comanda quando o robô deve parar e não realizar mais sua rotina
+bool flag = 0;          // Variável de controle para identificar o momento de parada
+bool flag_curva = 0;    // Cronometragem entre as retas e as cruvas
+bool flag_parada = 0;   // Inicia e encerra a cronometragem da pista
+bool f_stop = 0;        // Encerra a rotina de dados
+
+unsigned int millisegundos = 0; // Millisegundos
+
+// =============================================================================================
+// Variáveis do encoder
 unsigned char pulse_numberR = 0, pulse_numberL = 0; //variáveis para contagem dos pulsos dos encoders
 
-/*Variáveis da UART*/
-volatile char ch; //armazena o caractere lido
-volatile char flag_com = 0; //flag que indica se houve recepção de dado*/
+// =============================================================================================
+// Variáveis da UART
+volatile char ch;           // armazena o caractere lido
+volatile char flag_com = 0; // flag que indica se houve recepção de dado
 
-unsigned char max_timer1, max_timer2, max_timer3_ms, max_timer_3, max_timer4, max_timer5;   //variáveis de controle de temporização
+// =============================================================================================
+// Variaveis do controle de temporizacao 
+unsigned char max_timer1, max_timer2, max_timer3_ms, max_timer_3, max_timer4, max_timer5;
 
 #ifdef atmega328p
-/*Interrupções*/
+
+// =============================================================================================
+// Interrupções
+
 ISR(USART_RX_vect) {
     ch = UDR0; //Faz a leitura do buffer da serial
 
     UART_enviaCaractere(ch); //Envia o caractere lido para o computador
     flag_com = 1; //Aciona o flag de comunicação
-}//end UART_RX_Vect
+    
+} /* end UART_RX_Vect */
 
 ISR(TIMER0_OVF_vect) 
 {
     TCNT0 = 56; //Recarrega o Timer 0 para que a contagem seja 100us novamente
     
-    f_timers(); //função de temporização das rotinas   
-}//end TIMER_0
+    f_timers(); //função de temporização das rotinas  
+    
+} /* end TIMER_0 */
 
 ISR(ADC_vect)
 {
     sensors_ADC_maq();  //máquina de estado do conversor AD
-}//end ADC_int
+    
+} /* end ADC_int */
 
 
 ISR(INT0_vect)
 {
     count_pulsesD();
-}//end INT0
+    
+} /* end INT0 */
 
 ISR(PCINT0_vect)
 {
     count_pulsesE();
-}//end PCINT0
+    
+} /* end PCINT0 */
+
 #endif
 
-/*Função principal*/
+// =============================================================================================
+// Função principal
+// =============================================================================================
+
 int main(void) 
 {
     setup();
     while (1) loop();
     return 0;
-}//end main
+    
+}/* end main */
 
-/*RTOS primitivo*/
+// =============================================================================================
+// RTOS PRIMITIVO
+// =============================================================================================
 
 /*Parte não visível ao usuário*/
 void f_timers (void) 
@@ -84,43 +111,45 @@ void f_timers (void)
     static unsigned char c_timer5 = 1;
         
     
-    //funções a cada 200us
+    // --> funcoes a cada 200us <--
     if(c_timer1 < max_timer1)      //tempo que quer menos 1
     {
         c_timer1++;
     }
 
-    else
+    else // a cada 200us
     {
         f_timer1();
         c_timer1 = 1;
     }
 
-    /*300us*/
+    // --> funcoes a cada 300us <--
     if (c_timer2 < max_timer2)   //o 0 conta na contagem -> 3-1
     {
-        c_timer2++; //100us -1; 200us-2;300 us-3; 300us de intervalo de tempo
+        c_timer2++; //100us -1; 200us-2;300us-3; 300us de intervalo de tempo
     }
 
-    else    //a cada 300us
+    else //a cada 300us
     {
         f_timer2();
         c_timer2 = 1;
     }
 
+    // --> funcoes a cada 10ms <--
     if(c_timer3 < max_timer3_ms)   //10ms
     {
         c_timer3++;
     }
 
-    else
+    else // a cada 10ms
     {
         f_timer3();
         c_timer3 = 1;
     }
-
-    //Timer
-    //1ms
+    
+    // Timer
+    // 1ms
+    
     if(c_timer4 < max_timer4)
     {
         c_timer4++;
@@ -143,10 +172,13 @@ void f_timers (void)
         c_timer5 = 1;
     }
     
-}//fim do RTOS
+} /* end f_timers */
 
+// =============================================================================================
+// END RTOS PRIMITIVO
+// =============================================================================================
+// === Funções não visíveis ao usuário ==== //
 
-//===Funções não visíveis ao usuário======//
 void setup() 
 {
 
@@ -154,38 +186,40 @@ void setup()
     sei();              //Habilita as interrupções
     setup_logica();     //definição das variáveis lógicas(vazio por enquanto)
 
-}//end setup
+} /* end setup */
 
 void setup_logica() /*Função que passa ponteiros para funções como parâm*/
 {
     max_timer1 = 2, max_timer2 = 3, max_timer3_ms = 100, max_timer_3 = 50, 
     max_timer4 = 10, max_timer5 = 10;   //bases de tempo ciadas com uma base mínima de 100us
-}
+
+} /* end setup_logica */
 
 
-void loop()//loop vazio
+void loop() //loop vazio
 {
-
-}//end loop
+    
+}/* end loop */
 
 void estrategia()
 {
 
-    if (!f_parada)  //se f_parada for 0... 
+    if (!f_parada)  // Se f_parada for 0... 
     {
-        //sensors_sensores();             //seta o limiar da leitura dos sensores
-        sensors_sentido_de_giro();      //Verifica se precisa fazer uma curva e o cálculo do PID
-        //sensors_volta_pra_pista();      //corrige o robô caso saia da linha
+        //sensors_sensores();             // seta o limiar da leitura dos sensores
+        sensors_sentido_de_giro();        // Verifica se precisa fazer uma curva e o cálculo do PID
+        //sensors_volta_pra_pista();      // corrige o robô caso saia da linha
     } 
-}//end estrategia
+    
+} /* end estrategia */
 
 
 void parada() 
 {     
 
-    sensors_le_marcadores();//faz a leitura dos sensores laterais e verifica se é uma curva, cruzamento ou parada
+    sensors_laterais();//faz a leitura dos sensores laterais e verifica se é uma curva, cruzamento ou parada
 
-}//end parada
+} /* end parada */
 
 
 void fim_de_pista()
@@ -206,20 +240,22 @@ void fim_de_pista()
         parada = 0;
     }
     
-}//end fim_de_pista
+} /* end fim_de_pista */
 
-/*funções do encoder*/
+// =============================================================================================
+// Funções do encoder
 
 void count_pulsesD() 
 {
     static bool direction_m;
     static bool Encoder_C1Last = 0;
 
-    bool Lstate = (tst_bit(leitura_outros_sensores, encoder_C1D) >> encoder_C1D); //variável de leitura de um dos pinos do encoderD
+    bool Lstate = (tst_bit(leitura_outros_sensores, encoder_C1D) >> encoder_C1D); // variável de leitura de um dos pinos do encoderD
 
-    if (!Encoder_C1Last && Lstate) {
+    if (!Encoder_C1Last && Lstate)
+    {
         //Verifica se Encoder_C1Last é falso e Lstate é verdadeiro
-        bool val = tst_bit(leitura_outros_sensores, encoder_C2D >> encoder_C2D); //Variável de leitura do segundo pino do encoderD
+        bool val = tst_bit(leitura_outros_sensores, encoder_C2D >> encoder_C2D); // Variável de leitura do segundo pino do encoderD
 
         if (!val && direction_m) direction_m = 0; //sentido horário
 
@@ -231,7 +267,7 @@ void count_pulsesD()
     if (!direction_m) pulse_numberR++; //sentido horário
     else pulse_numberR--;
 
-}//end count_pulsesD
+} /* end count_pulsesD */
 
 void count_pulsesE()
 {
@@ -241,8 +277,8 @@ void count_pulsesE()
 
     bool Lstate = (tst_bit(leitura_sensores, encoder_C1E) >> encoder_C1E); //variável de leitura de um dos pinos do encoderD
 
-    if (!Encoder_C1Last && Lstate) 
-    { //Verifica se Encoder_C1Last é falso e Lstate é verdadeiro
+    if (!Encoder_C1Last && Lstate) //Verifica se Encoder_C1Last é falso e Lstate é verdadeiro
+    { 
         bool val = (tst_bit(leitura_sensores, encoder_C2E) >> encoder_C2E); //Variável de leitura do segundo pino do encoderD
 
         if (!val && direction_m) direction_m = 0; //sentido horário
@@ -255,31 +291,38 @@ void count_pulsesE()
     if (!direction_m) pulse_numberR++; //sentido horário
     else pulse_numberL--; //sentido anti-horário
 
-}//end count_PulsesE
+} /* end count_PulsesE */
 
-
+// =============================================================================================
+// Controle de temporização
+// =============================================================================================
 
 void millis(void)//cronômetro de base de 1ms
 {
     //static unsigned int f_read = 0;
     
     millisegundos++;
-}//end millis
+    
+} /* end millis */
 
 void f_timer1(void)
 {
     parada();
     fim_de_pista();         //Verifica se é o fim da pista
-}//end f_timer1
+
+} /* end f_timer1 */
 
 void f_timer2(void)
 {
     estrategia();
-}//end f_timer2
 
-void f_timer3(void)     //10ms
+} /* end f_timer2 */
+
+void f_timer3(void) // --> 0,5s = 500ms <--
 {   
-    //ftimer3 é uma função com uma base de tempo de ms dentro dela e que novas funções são chamadas numa escala de ms
+    /*  f_timer3 é uma função com uma base de tempo de ms dentro dela 
+     *  e que novas funções são chamadas numa escala de ms */
+     
     static unsigned char c_timer1 = 0;
     
     if(c_timer1 < max_timer_3)  //500ms = 0,5s
@@ -292,13 +335,14 @@ void f_timer3(void)     //10ms
         //dados_telemetria();
         c_timer1 = 1;
     }
-}//end f_timer3
+    
+} /* end f_timer3 */
 
 void f_timer4(void)
 {
     millis();   //função chamada a cada 1ms 
 
-}//end f_timer4
+} /* end f_timer4 */
 
 void f_timer5(void)
 {
@@ -306,6 +350,11 @@ void f_timer5(void)
     {
         //dados_coleta();
     }
-}//end f_timer5
+    
+} /* end f_timer5 */
 
-/*-------------------------FIM DO PROGRAMA-----------------*/
+// =============================================================================================
+// end controle de temporizacao
+// =============================================================================================
+
+/* ----------------------------------------- FIM DO PROGRAMA ------------------------------------------- */
