@@ -149,7 +149,7 @@ void sensors_sentido_de_giro()
                                               * para ler os 5 LSBs */
     #endif
         
-    sensors_leitura_de_pista(&erro_sensores, &speedW, &speedX, &PWM_general, &PWMR, &PWM_Curva);
+    sensors_frontais(&erro_sensores, &speedW, &speedX, &PWM_general, &PWMR, &PWM_Curva);
     
     #ifdef PID_X                                /* caso não seja definido, u_X será sempre 0
                                                  * variação entro os dois enconders */
