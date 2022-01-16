@@ -186,7 +186,7 @@ void estrategia()
 
 void parada() 
 {     
-    sensors_le_marcadores();
+    sensors_laterais();
 }
 
 
