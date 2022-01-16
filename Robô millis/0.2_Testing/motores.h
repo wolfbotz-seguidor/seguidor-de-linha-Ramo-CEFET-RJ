@@ -6,8 +6,8 @@
 #define AIN1 PD5 // Quando em HIGH, roda direita anda para frente 
 
 //Lado Esquerdo
-#define BIN1 PD4 // Quando em HIGH, roda esquerda anda para frente
-#define BIN2 PD3 
+#define BIN1 PD4 
+#define BIN2 PD3 // Quando em HIGH, roda esquerda anda para frente
 
 void motores_frente();
 void motores_direita_frente();

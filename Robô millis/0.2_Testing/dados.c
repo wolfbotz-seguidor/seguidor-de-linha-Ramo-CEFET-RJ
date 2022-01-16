@@ -1,6 +1,7 @@
 #include "dados.h"
 //#include "sensor_logic.h"
 
+
 /*Variáveis globais desta bilioteca*/
 unsigned int matriz_telemetria [100][3];   //matriz de colhimento de dados
 unsigned int matriz_pista      [30][3];    //colhe somente distancia, tempo e raio
@@ -12,7 +13,8 @@ char buffer[5]; //String que armazena valores de entrada para serem printadas
 unsigned int dados_valor_pwm(void)
 {
     extern unsigned int PWMA, PWMB;
-    return ((PWMA + PWMB) / 2);     //retorna a média dos PWMs dos dois motores
+    
+    return ((PWMA + PWMB) / 2);
 }
 
 unsigned int dados_distancia_calculo(void)
@@ -73,18 +75,14 @@ unsigned int dados_velocid_linear()
     
     distancia_f = dados_distancia_calculo();
     
-    velocidade  = distancia_f / 0.5;      /* divide distancia_f por 0,5 a cada 500ms calculando a
-                                          *  velocidade em mm/s: velocidade = distancia / (0,5/0,5) 
-                                          *  velocidade = distancia / 1 = mm/s */ 
+    velocidade  = distancia_f / 0.5;     //cálculo da velocidade em mm/s
     
     return velocidade;
 }
 
 unsigned int dados_speed_avrg(void)
 {
-    return(dados_velocid_linear() / 0.5);      /* calculo da aceleracao em mm/s²  
-                                                * velocidade / (Timer/0,5) = ( m/s ) / ( 500ms/0,5) 
-                                                * velocidade / tempo       = ( m/s ) / 1s =  mm/s² */
+    return(dados_velocid_linear() / 0.5);     //ca?culo da aceleração em mm/s²
 }
 
 
